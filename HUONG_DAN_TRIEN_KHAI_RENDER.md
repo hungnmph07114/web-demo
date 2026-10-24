@@ -9,6 +9,8 @@ Tài liệu này được biên soạn dành riêng cho bạn để lưu trữ t
 > | **Render.com** (Server Web) | Email tài khoản | `itisloves2@gmail.com` (Workspace: *My Workspace*) |
 > | | Trang quản trị | [dashboard.render.com](https://dashboard.render.com) |
 > | | API Key | `rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE` |
+> | | **Trang Web Trực Tuyến (Live)** | **[https://shopchychy.foo.ng](https://shopchychy.foo.ng)** (Tên miền riêng)<br>*(Hoặc: [https://web-demo-app.onrender.com](https://web-demo-app.onrender.com))* |
+> | | Kho lưu trữ GitHub | [https://github.com/hungnmph07114/web-demo](https://github.com/hungnmph07114/web-demo) |
 > | **Supabase** (PostgreSQL) | Trang quản trị | [supabase.com/dashboard/project/oecgyiaetefmxkrndcvk](https://supabase.com/dashboard/project/oecgyiaetefmxkrndcvk) |
 > | | Mật khẩu Database | `manhhung0423` |
 > | | **Chuỗi kết nối (DATABASE_URL)** | `postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres` |

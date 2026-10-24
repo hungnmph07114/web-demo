@@ -3,111 +3,601 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Render & Supabase Fullstack Demo</title>
+  <title>MathKids 🚀 - Đấu Trường Toán Tư Duy Tiểu Học (Lớp 1 - Lớp 5)</title>
+  <meta name="description" content="Nền tảng học tập và rèn luyện tư duy toán học tương tác đỉnh cao dành cho học sinh tiểu học (Lớp 1 đến Lớp 5). Vừa học vừa chơi với Cân thăng bằng, Đấu trường 60s, Lật thẻ trí nhớ và Thám tử quy luật.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="background-glow"></div>
-  
-  <header class="app-header">
-    <div class="container header-container">
-      <div class="logo-area">
-        <div class="logo-icon">🚀</div>
-        <div>
-          <h1>Cloud Demo App</h1>
-          <p class="subtitle">Node.js Express + Supabase PostgreSQL + Render.com</p>
+  <!-- Canvas pháo hoa giấy Confetti -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Nền hiệu ứng bong bóng nổi lơ lửng -->
+  <div class="floating-bubbles" aria-hidden="true">
+    <span class="bubble b1">➕</span>
+    <span class="bubble b2">⭐</span>
+    <span class="bubble b3">✖️</span>
+    <span class="bubble b4">✨</span>
+    <span class="bubble b5">➗</span>
+    <span class="bubble b6">💡</span>
+    <span class="bubble b7">➖</span>
+    <span class="bubble b8">🚀</span>
+  </div>
+
+  <!-- Header chính -->
+  <header class="main-header">
+    <div class="header-inner container">
+      <!-- Logo và linh vật -->
+      <div class="brand-group" id="btnGoHome">
+        <div class="mascot-avatar-small bounce-hover">🦉</div>
+        <div class="brand-text">
+          <h1 class="site-title">MathKids<span class="title-highlight">.vn</span></h1>
+          <p class="site-tagline">Toán Tư Duy Tiểu Học • Vui Học Mỗi Ngày</p>
         </div>
       </div>
-      <div class="header-actions">
-        <button id="btnRefresh" class="btn btn-secondary">
-          <span class="icon">🔄</span> Làm mới dữ liệu
+
+      <!-- Thống kê của bé & Nút điều khiển -->
+      <div class="user-stats-bar">
+        <!-- Huy hiệu Cấp độ -->
+        <div class="stat-pill level-pill" id="btnOpenProfile" title="Bấm để xem và sửa hồ sơ">
+          <span class="stat-icon" id="userAvatarIcon">🦉</span>
+          <div class="stat-info">
+            <span class="stat-label" id="userNameLabel">Bé Thông Thái</span>
+            <span class="stat-value level-text" id="userLevelBadge">Cấp 1 • Mầm Non 🌱</span>
+          </div>
+        </div>
+
+        <!-- Số sao thưởng -->
+        <div class="stat-pill star-pill" title="Tổng số sao đạt được">
+          <span class="stat-icon star-icon">⭐</span>
+          <span class="stat-num" id="userStarsCount">0</span>
+        </div>
+
+        <!-- Chuỗi streak ngày/câu -->
+        <div class="stat-pill streak-pill" title="Chuỗi trả lời đúng liên tiếp">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-num" id="userStreakCount">0</span>
+        </div>
+
+        <!-- Bật / Tắt âm thanh -->
+        <button id="btnSoundToggle" class="btn-icon-circle" title="Bật/Tắt âm thanh" aria-label="Bật/Tắt âm thanh">
+          <span id="soundIcon">🔊</span>
         </button>
       </div>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Status Dashboard -->
-    <section class="status-grid">
-      <div class="status-card" id="cardServer">
-        <div class="status-header">
-          <span class="status-title">Trạng thái Server</span>
-          <span class="indicator-dot online"></span>
+  <!-- Thanh điều hướng các khu vực chơi -->
+  <nav class="nav-bar container">
+    <div class="nav-track">
+      <button class="nav-tab active" data-tab="tab-practice" id="tabPracticeBtn">
+        <span class="tab-emoji">🎒</span>
+        <span class="tab-text">Hành Trình Lớp 1 - 5</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-balance" id="tabBalanceBtn">
+        <span class="tab-emoji">⚖️</span>
+        <span class="tab-text">Cân Thăng Bằng</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-speed" id="tabSpeedBtn">
+        <span class="tab-emoji">⚡</span>
+        <span class="tab-text">Đấu Trường 60s</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-memory" id="tabMemoryBtn">
+        <span class="tab-emoji">🃏</span>
+        <span class="tab-text">Lật Thẻ Trí Nhớ</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-leaderboard" id="tabLeaderboardBtn">
+        <span class="tab-emoji">🏆</span>
+        <span class="tab-text">Vinh Danh & Huy Hiệu</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Khu vực nội dung chính -->
+  <main class="container main-content">
+
+    <!-- ============================================== -->
+    <!-- TAB 1: HÀNH TRÌNH KHÁM PHÁ CÁC LỚP (1 -> 5) -->
+    <!-- ============================================== -->
+    <section id="tab-practice" class="tab-panel active">
+      <!-- Banner Chào Mừng & Lời Cú PiPi -->
+      <div class="mascot-welcome-card">
+        <div class="mascot-img-wrap">
+          <div class="mascot-graphic">🦉</div>
+          <span class="mascot-name">Cú Nhí PiPi</span>
         </div>
-        <div class="status-value" id="valServer">Đang kiểm tra...</div>
-        <div class="status-meta" id="valPlatform">Platform: Linux / Cloud</div>
+        <div class="mascot-speech-bubble">
+          <p id="mascotMessage">"Chào bạn nhỏ! Hôm nay chúng mình cùng thử tài tư duy toán học nhé. Hãy chọn lớp học của bạn nào!"</p>
+          <div class="mascot-quick-stats">
+            <span>🎯 Đã làm đúng: <strong id="practiceSolvedCount">0</strong> câu</span>
+            <span>✨ Tỷ lệ chính xác: <strong id="practiceAccuracy">100%</strong></span>
+          </div>
+        </div>
       </div>
 
-      <div class="status-card" id="cardDatabase">
-        <div class="status-header">
-          <span class="status-title">PostgreSQL Database</span>
-          <span class="indicator-dot checking" id="dbDot"></span>
+      <!-- Chọn khối lớp -->
+      <div class="grade-selector-container">
+        <h2 class="section-title">Chọn Khối Lớp Của Bé</h2>
+        <div class="grade-cards-grid">
+          <button class="grade-card active" data-grade="1">
+            <div class="grade-badge">Lớp 1</div>
+            <div class="grade-icon">🐣</div>
+            <div class="grade-name">Số Học Khởi Đầu</div>
+            <div class="grade-desc">Cộng trừ phạm vi 20, đếm hình, so sánh, quy luật màu sắc</div>
+            <div class="grade-stars">⭐⭐⭐</div>
+          </button>
+
+          <button class="grade-card" data-grade="2">
+            <div class="grade-badge">Lớp 2</div>
+            <div class="grade-icon">🦊</div>
+            <div class="grade-name">Logic Tí Hon</div>
+            <div class="grade-desc">Phép nhân chia 2 & 5, tìm ẩn số hình vẽ, xem đồng hồ & dãy số</div>
+            <div class="grade-stars">⭐⭐⭐</div>
+          </button>
+
+          <button class="grade-card" data-grade="3">
+            <div class="grade-badge">Lớp 3</div>
+            <div class="grade-icon">🦁</div>
+            <div class="grade-name">Thần Tính Nhẩm</div>
+            <div class="grade-desc">Bảng cửu chương 1-9, chu vi, diện tích ô vuông, bài toán gấp lần</div>
+            <div class="grade-stars">⭐⭐⭐</div>
+          </button>
+
+          <button class="grade-card" data-grade="4">
+            <div class="grade-badge">Lớp 4</div>
+            <div class="grade-icon">🚀</div>
+            <div class="grade-name">Chiến Binh Tư Duy</div>
+            <div class="grade-desc">Quy luật ma trận số, bài toán Tổng - Hiệu, phân số, toán suy luận</div>
+            <div class="grade-stars">⭐⭐⭐</div>
+          </button>
+
+          <button class="grade-card" data-grade="5">
+            <div class="grade-badge">Lớp 5</div>
+            <div class="grade-icon">👑</div>
+            <div class="grade-name">Đại Sư Toán Học</div>
+            <div class="grade-desc">Tỉ số phần trăm, chuyển động đều, khối lập phương không gian</div>
+            <div class="grade-stars">⭐⭐⭐</div>
+          </button>
         </div>
-        <div class="status-value" id="valDb">Đang kết nối...</div>
-        <div class="status-meta" id="valDbLatency">Độ trễ: -- ms</div>
       </div>
 
-      <div class="status-card" id="cardCount">
-        <div class="status-header">
-          <span class="status-title">Số bản ghi trong DB</span>
-          <span class="badge">Live</span>
+      <!-- Khu vực câu hỏi rèn luyện tư duy -->
+      <div class="challenge-board-card" id="practiceQuestionBoard">
+        <div class="challenge-header">
+          <div class="challenge-meta">
+            <span class="badge-tag grade-tag" id="currentGradeTag">Lớp 1</span>
+            <span class="badge-tag topic-tag" id="currentTopicTag">Quy luật số học</span>
+            <span class="badge-tag diff-tag" id="currentDiffTag">Độ khó: Vừa</span>
+          </div>
+          <div class="challenge-progress-box">
+            <span class="progress-text">Câu hỏi <strong id="questionNumText">1/10</strong></span>
+            <div class="mini-progress-bar">
+              <div class="mini-progress-fill" id="questionProgressFill" style="width: 10%;"></div>
+            </div>
+          </div>
         </div>
-        <div class="status-value" id="valCount">0</div>
-        <div class="status-meta">Bảng: <code>notes</code></div>
+
+        <!-- Đề bài câu hỏi -->
+        <div class="question-body">
+          <div class="question-title-wrap">
+            <span class="q-icon">❓</span>
+            <h3 class="question-title" id="questionText">Hãy tìm số thích hợp điền vào dấu chấm hỏi (?)</h3>
+          </div>
+
+          <!-- Trực quan hóa hình ảnh / Đồ họa toán học sinh động -->
+          <div class="question-visual-area" id="questionVisual">
+            <!-- Được render linh hoạt bằng SVG, bảng số, emoji, hoặc hình cân -->
+          </div>
+        </div>
+
+        <!-- Các lựa chọn đáp án dạng nút 3D -->
+        <div class="answers-grid" id="answersGrid">
+          <!-- Các nút đáp án sẽ được chèn bởi JS -->
+        </div>
+
+        <!-- Khu vực trợ giúp & Gợi ý của PiPi -->
+        <div class="question-actions-bar">
+          <button id="btnHint" class="btn btn-hint">
+            <span class="btn-icon">💡</span> Bé cần gợi ý?
+          </button>
+          <div id="hintBox" class="hint-box hidden">
+            <div class="hint-header">
+              <span>🦉 Lời khuyên của Bé PiPi:</span>
+              <button id="btnCloseHint" class="btn-close-sm">✕</button>
+            </div>
+            <p id="hintTextContent">Hãy quan sát kỹ khoảng cách giữa hai số liền nhau xem tăng thêm mấy đơn vị nhé!</p>
+          </div>
+        </div>
+
+        <!-- Hộp phản hồi & Giải thích chi tiết sau khi chọn đáp án -->
+        <div id="feedbackBox" class="feedback-box hidden">
+          <div class="feedback-banner" id="feedbackBanner">
+            <span class="feedback-icon" id="feedbackIcon">🎉</span>
+            <div class="feedback-text-group">
+              <h4 id="feedbackTitle">Chính xác tuyệt vời!</h4>
+              <p id="feedbackDesc">+10 XP và +1 ⭐ thưởng cho bạn nhỏ!</p>
+            </div>
+          </div>
+
+          <!-- Lời giải thích từng bước -->
+          <div class="explanation-box" id="explanationBox">
+            <div class="exp-title">📖 Bé cùng xem giải thích từng bước nhé:</div>
+            <div class="exp-content" id="explanationText">
+              Quy luật: Mỗi số phía sau bằng số phía trước cộng thêm 2 đơn vị (2, 4, 6, 8, 10). Do đó 8 + 2 = 10.
+            </div>
+          </div>
+
+          <!-- Nút sang câu tiếp theo -->
+          <div class="feedback-actions">
+            <button id="btnNextQuestion" class="btn btn-primary btn-bounce">
+              <span>Tiếp Tục Chinh Phục ➡️</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Main Content Grid -->
-    <div class="content-grid">
-      <!-- Create Note Section -->
-      <section class="card form-card">
-        <h2>Thêm ghi chú mới vào Database</h2>
-        <p class="desc">Dữ liệu sẽ được lưu trực tiếp vào Supabase PostgreSQL trên Cloud.</p>
-        
-        <form id="noteForm">
-          <div class="form-group">
-            <label for="title">Tiêu đề <span class="required">*</span></label>
-            <input type="text" id="title" placeholder="Ví dụ: Họp nhóm dự án chiều nay..." required>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: CÂN THĂNG BẰNG MA THUẬT (VISUAL ALGEBRA) -->
+    <!-- ============================================== -->
+    <section id="tab-balance" class="tab-panel">
+      <div class="game-intro-card">
+        <div class="intro-icon">⚖️</div>
+        <div>
+          <h2>Phòng Thí Nghiệm Cân Thăng Bằng Ma Thuật</h2>
+          <p>Rèn luyện tư duy đại số thị giác đỉnh cao! Bé hãy quan sát đĩa cân và tìm xem đồ vật hoặc con số bí ẩn nặng bao nhiêu để chiếc cân giữ thăng bằng hoàn hảo nhé!</p>
+        </div>
+      </div>
+
+      <div class="balance-game-wrapper">
+        <!-- Bảng trạng thái game cân -->
+        <div class="game-control-header">
+          <div class="stage-badge">Màn <span id="balanceLevelText">1</span> / 10</div>
+          <div class="balance-score-badge">Điểm: <span id="balanceScoreText">0</span> ⭐</div>
+          <button id="btnResetBalance" class="btn btn-sm btn-secondary">🔄 Đổi câu khác</button>
+        </div>
+
+        <!-- Khung Cân Tương Tác SVG -->
+        <div class="scale-visual-container">
+          <div class="scale-status-indicator" id="scaleIndicatorText">⚖️ Cân chưa thăng bằng</div>
+          
+          <div class="scale-apparatus" id="scaleApparatus">
+            <!-- Trụ cân chính -->
+            <div class="scale-fulcrum"></div>
+            <!-- Đòn cân xoay -->
+            <div class="scale-beam" id="scaleBeam">
+              <!-- Móc trái -->
+              <div class="scale-hook hook-left">
+                <div class="scale-string"></div>
+                <div class="scale-pan pan-left" id="panLeft">
+                  <!-- Chứa các vật bên trái -->
+                  <div class="pan-items" id="panLeftItems"></div>
+                  <div class="pan-dish"></div>
+                </div>
+              </div>
+
+              <!-- Trọng tâm kim chỉ cân -->
+              <div class="scale-pointer"></div>
+
+              <!-- Móc phải -->
+              <div class="scale-hook hook-right">
+                <div class="scale-string"></div>
+                <div class="scale-pan pan-right" id="panRight">
+                  <!-- Chứa các vật bên phải -->
+                  <div class="pan-items" id="panRightItems"></div>
+                  <div class="pan-dish"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Câu hỏi của màn chơi cân -->
+        <div class="balance-question-box">
+          <h3 id="balanceQuestionPrompt">1 Quả Táo 🍎 nặng bao nhiêu kg?</h3>
+          <p class="balance-subprompt">Nhấp vào đáp án chính xác bên dưới để cân thăng bằng:</p>
+
+          <!-- Các nút chọn số cân -->
+          <div class="balance-options-grid" id="balanceOptionsGrid">
+            <!-- Sẽ được render bởi JS -->
           </div>
 
-          <div class="form-group">
-            <label for="content">Nội dung chi tiết</label>
-            <textarea id="content" rows="4" placeholder="Nhập nội dung ghi chú của bạn..."></textarea>
+          <!-- Lời giải & Kết quả màn cân -->
+          <div id="balanceFeedback" class="balance-feedback hidden">
+            <div id="balanceFeedbackMsg"></div>
+            <button id="btnNextBalanceStage" class="btn btn-primary">Màn Tiếp Theo ➡️</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 3: ĐẤU TRƯỜNG TỐC ĐỘ 60 GIÂY -->
+    <!-- ============================================== -->
+    <section id="tab-speed" class="tab-panel">
+      <div class="speed-arena-wrapper">
+        <!-- Màn hình chuẩn bị bắt đầu -->
+        <div id="speedIntroScreen" class="arena-card speed-intro">
+          <div class="speed-hero-icon">⚡</div>
+          <h2>Đấu Trường Thần Tính Nhẩm 60 Giây</h2>
+          <p class="arena-desc">
+            Thử thách phản xạ não bộ siêu tốc! Trả lời đúng càng nhiều câu trong 60 giây, tích lũy chuỗi <strong>Combo x2, x3, x5</strong> để bùng nổ điểm số và giành cúp vàng!
+          </p>
+
+          <div class="speed-config-group">
+            <label for="speedGradeSelect">Chọn độ tuổi / Lớp thi đấu:</label>
+            <select id="speedGradeSelect" class="form-select">
+              <option value="1">Lớp 1 (Cộng trừ phạm vi 20)</option>
+              <option value="2">Lớp 2 (Phép cộng trừ 100 & nhân 2, 5)</option>
+              <option value="3" selected>Lớp 3 (Bảng cửu chương & tính nhẩm 1000)</option>
+              <option value="4">Lớp 4 (Nhân chia nhiều chữ số & số chẵn lẻ)</option>
+              <option value="5">Lớp 5 (Số thập phân & tính nhanh phân số)</option>
+            </select>
           </div>
 
-          <button type="submit" id="btnSubmit" class="btn btn-primary">
-            <span class="btn-text">💾 Lưu vào Database</span>
+          <div class="arena-high-score">
+            🏆 Kỷ lục hiện tại của bé: <span id="speedHighScoreDisplay">0 điểm</span>
+          </div>
+
+          <button id="btnStartSpeedGame" class="btn btn-start-game btn-bounce">
+            <span class="btn-text">🚀 BẮT ĐẦU THỬ THÁCH 60S!</span>
           </button>
-        </form>
-      </section>
-
-      <!-- Notes List Section -->
-      <section class="card list-card">
-        <div class="list-header">
-          <h2>Danh sách ghi chú</h2>
-          <span class="list-counter" id="listCounter">Đang tải...</span>
         </div>
-        
-        <div id="notesContainer" class="notes-container">
-          <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Đang tải dữ liệu từ PostgreSQL...</p>
+
+        <!-- Màn hình trong lúc chơi -->
+        <div id="speedGameScreen" class="arena-card speed-playing hidden">
+          <!-- Thanh trạng thái thời gian & Combo -->
+          <div class="speed-hud">
+            <div class="hud-item timer-hud">
+              <span class="hud-icon">⏱️</span>
+              <div class="hud-text">
+                <span class="hud-label">Thời gian</span>
+                <span class="hud-val time-val" id="speedTimerVal">60s</span>
+              </div>
+            </div>
+
+            <div class="hud-item score-hud">
+              <span class="hud-icon">🌟</span>
+              <div class="hud-text">
+                <span class="hud-label">Điểm số</span>
+                <span class="hud-val" id="speedCurrentScore">0</span>
+              </div>
+            </div>
+
+            <div class="hud-item combo-hud" id="speedComboPill">
+              <span class="hud-icon">🔥</span>
+              <div class="hud-text">
+                <span class="hud-label">Combo</span>
+                <span class="hud-val combo-multiplier" id="speedComboVal">x1</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thanh tiến trình thời gian dạng vạch tuột -->
+          <div class="speed-time-progress">
+            <div class="speed-time-bar" id="speedTimeBar" style="width: 100%;"></div>
+          </div>
+
+          <!-- Đề bài phép tính nhẩm -->
+          <div class="speed-math-display">
+            <div class="speed-expression" id="speedExpression">15 + 28 = ?</div>
+          </div>
+
+          <!-- 4 Nút chọn kết quả siêu to -->
+          <div class="speed-answers-grid" id="speedAnswersGrid">
+            <!-- 4 Nút đáp án tạo tự động -->
           </div>
         </div>
-      </section>
-    </div>
+
+        <!-- Màn hình kết thúc trận đấu -->
+        <div id="speedGameOverScreen" class="arena-card speed-gameover hidden">
+          <div class="gameover-trophy">🏆</div>
+          <h2>HẾT GIỜ! BẠN NHỎ LÀM RẤT TỐT!</h2>
+          <p class="gameover-subtitle">Bạn đã hoàn thành xuất sắc thử thách 60 giây</p>
+
+          <div class="gameover-stats-grid">
+            <div class="g-stat-card">
+              <span class="g-stat-icon">🎯</span>
+              <span class="g-stat-num" id="speedStatCorrect">0</span>
+              <span class="g-stat-lbl">Số câu đúng</span>
+            </div>
+            <div class="g-stat-card">
+              <span class="g-stat-icon">🔥</span>
+              <span class="g-stat-num" id="speedStatMaxCombo">0</span>
+              <span class="g-stat-lbl">Combo cao nhất</span>
+            </div>
+            <div class="g-stat-card">
+              <span class="g-stat-icon">⭐</span>
+              <span class="g-stat-num" id="speedStatTotalScore">0</span>
+              <span class="g-stat-lbl">Tổng điểm</span>
+            </div>
+            <div class="g-stat-card">
+              <span class="g-stat-icon">⚡</span>
+              <span class="g-stat-num" id="speedStatAccuracy">0%</span>
+              <span class="g-stat-lbl">Độ chính xác</span>
+            </div>
+          </div>
+
+          <div class="gameover-actions">
+            <button id="btnSpeedPlayAgain" class="btn btn-primary">
+              <span>🔄 Chơi Lại Lần Nữa</span>
+            </button>
+            <button id="btnSpeedSaveScore" class="btn btn-secondary">
+              <span>💾 Lưu Vào Bảng Vinh Danh</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 4: LẬT THẺ TRÍ NHỚ TOÁN HỌC (MEMORY MATCH) -->
+    <!-- ============================================== -->
+    <section id="tab-memory" class="tab-panel">
+      <div class="game-intro-card">
+        <div class="intro-icon">🃏</div>
+        <div>
+          <h2>Trò Chơi Lật Thẻ Trí Nhớ Toán Học</h2>
+          <p>Ghép cặp thẻ tương ứng giữa <strong>Phép tính</strong> và <strong>Kết quả</strong> (Ví dụ: Thẻ <code>7 × 8</code> sẽ đi cùng thẻ <code>56</code>). Rèn luyện trí nhớ và phản xạ tư duy nhanh nhạy!</p>
+        </div>
+      </div>
+
+      <div class="memory-game-wrapper">
+        <!-- Bảng điều khiển -->
+        <div class="memory-hud">
+          <div class="m-hud-stat">
+            <span>⏱️ Thời gian:</span>
+            <strong id="memoryTimerText">00:00</strong>
+          </div>
+          <div class="m-hud-stat">
+            <span>👆 Lượt lật:</span>
+            <strong id="memoryFlipsText">0</strong>
+          </div>
+          <div class="m-hud-stat">
+            <span>🎉 Đã ghép:</span>
+            <strong id="memoryPairsText">0 / 6</strong>
+          </div>
+          <button id="btnRestartMemory" class="btn btn-sm btn-secondary">🔄 Xếp bài mới</button>
+        </div>
+
+        <!-- Lưới thẻ lật -->
+        <div class="memory-grid" id="memoryGrid">
+          <!-- 12 hoặc 16 thẻ lật 3D được sinh tự động -->
+        </div>
+
+        <!-- Banner chúc mừng khi hoàn thành game bài -->
+        <div id="memoryWinBanner" class="memory-win-card hidden">
+          <div class="win-icon">🎉</div>
+          <h3>Chúc Mừng Thần Đồng Trí Nhớ!</h3>
+          <p id="memoryWinDesc">Bé đã tìm thấy tất cả các cặp thẻ trong 35 giây với 14 lượt lật!</p>
+          <div class="win-stars">⭐⭐⭐</div>
+          <button id="btnPlayNextMemory" class="btn btn-primary">Chơi Ván Khác ➡️</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ============================================== -->
+    <!-- TAB 5: BẢNG VINH DANH & BỘ SƯU TẬP HUY HIỆU -->
+    <!-- ============================================== -->
+    <section id="tab-leaderboard" class="tab-panel">
+      <div class="achievements-layout">
+        <!-- Cột trái: Bộ sưu tập Huy Hiệu -->
+        <div class="card badges-section">
+          <div class="card-header">
+            <h3>🏅 Bộ Sưu Tập Huy Hiệu Của Bé</h3>
+            <span class="badge-count" id="unlockedBadgesCount">0/8 đã mở</span>
+          </div>
+          <p class="sub-card-desc">Cố gắng hoàn thành thật nhiều thử thách để mở khóa toàn bộ huy hiệu danh giá nhé!</p>
+
+          <div class="badges-grid" id="badgesGrid">
+            <!-- Danh sách 8 huy hiệu sẽ hiển thị tại đây -->
+          </div>
+        </div>
+
+        <!-- Cột phải: Bảng Xếp Hạng Trực Tuyến -->
+        <div class="card leaderboard-section">
+          <div class="card-header">
+            <h3>🏆 Bảng Vinh Danh Toàn Quốc</h3>
+            <span class="db-live-indicator" id="leaderboardStatusTag">🟢 Trực tuyến</span>
+          </div>
+          <p class="sub-card-desc">Cập nhật theo thời gian thực từ Supabase Cloud Database</p>
+
+          <!-- Bộ lọc bảng xếp hạng -->
+          <div class="lb-filter-bar">
+            <button class="lb-filter-btn active" data-filter="all">Tất cả</button>
+            <button class="lb-filter-btn" data-filter="speed">⚡ Đấu trường 60s</button>
+            <button class="lb-filter-btn" data-filter="practice">🎒 Luyện tập</button>
+            <button class="lb-filter-btn" data-filter="balance">⚖️ Cân thăng bằng</button>
+          </div>
+
+          <!-- Danh sách người chơi điểm cao -->
+          <div class="leaderboard-list" id="leaderboardList">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Đang tải bảng vinh danh...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <footer class="app-footer">
-    <div class="container footer-content">
-      <p>Triển khai tự động bằng <strong>Render.com Web Service</strong> • Cơ sở dữ liệu <strong>Supabase Always Free</strong></p>
+  <!-- ============================================== -->
+  <!-- MODAL: HỒ SƠ & THAY ĐỔI NHÂN VẬT ĐẠI DIỆN -->
+  <!-- ============================================== -->
+  <div id="profileModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Hồ Sơ Của Bé Yêu</h3>
+        <button id="btnCloseProfileModal" class="btn-close-sm">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="inputPlayerName">Tên hoặc biệt danh của bạn nhỏ:</label>
+          <input type="text" id="inputPlayerName" placeholder="Ví dụ: Bé Minh Khang, An Nhiên..." maxlength="30" class="input-text">
+        </div>
+
+        <div class="form-group">
+          <label>Chọn con vật đại diện (Avatar) yêu thích:</label>
+          <div class="avatar-picker-grid" id="avatarPickerGrid">
+            <button class="avatar-opt active" data-avatar="🦉">🦉 Cú PiPi</button>
+            <button class="avatar-opt" data-avatar="🦁">🦁 Sư Tử</button>
+            <button class="avatar-opt" data-avatar="🐰">🐰 Thỏ Con</button>
+            <button class="avatar-opt" data-avatar="🐼">🐼 Gấu Trúc</button>
+            <button class="avatar-opt" data-avatar="🦊">🦊 Bé Cáo</button>
+            <button class="avatar-opt" data-avatar="🤖">🤖 Robot</button>
+            <button class="avatar-opt" data-avatar="🦄">🦄 Kỳ Lân</button>
+            <button class="avatar-opt" data-avatar="🚀">🚀 Phi Hành Gia</button>
+          </div>
+        </div>
+
+        <!-- Thống kê tổng hợp cá nhân -->
+        <div class="player-personal-stats">
+          <div class="p-stat">
+            <span class="p-stat-lbl">Cấp độ hiện tại</span>
+            <strong class="p-stat-val" id="modalLevelTitle">Mầm Non Toán Học 🌱</strong>
+          </div>
+          <div class="p-stat">
+            <span class="p-stat-lbl">Tổng điểm kinh nghiệm (XP)</span>
+            <strong class="p-stat-val" id="modalTotalXP">0 XP</strong>
+          </div>
+          <div class="p-stat">
+            <span class="p-stat-lbl">Tổng số sao kiếm được</span>
+            <strong class="p-stat-val" id="modalTotalStars">0 ⭐</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnSaveProfile" class="btn btn-primary btn-full">
+          <span>💾 Lưu Thông Tin</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thông báo Toast -->
+  <div id="toastNotification" class="toast-popup"></div>
+
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <strong>MathKids.vn</strong> • Nền tảng rèn luyện tư duy toán sáng tạo cho thế hệ tương lai
+      </div>
+      <div class="footer-right">
+        Hệ thống Node.js Express • Supabase PostgreSQL • Render.com
+      </div>
     </div>
   </footer>
-
-  <div id="toast" class="toast"></div>
 
   <script src="app.js"></script>
 </body>
