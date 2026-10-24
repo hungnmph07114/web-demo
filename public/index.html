@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Render & Supabase Fullstack Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-glow"></div>
+  
+  <header class="app-header">
+    <div class="container header-container">
+      <div class="logo-area">
+        <div class="logo-icon">🚀</div>
+        <div>
+          <h1>Cloud Demo App</h1>
+          <p class="subtitle">Node.js Express + Supabase PostgreSQL + Render.com</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnRefresh" class="btn btn-secondary">
+          <span class="icon">🔄</span> Làm mới dữ liệu
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Status Dashboard -->
+    <section class="status-grid">
+      <div class="status-card" id="cardServer">
+        <div class="status-header">
+          <span class="status-title">Trạng thái Server</span>
+          <span class="indicator-dot online"></span>
+        </div>
+        <div class="status-value" id="valServer">Đang kiểm tra...</div>
+        <div class="status-meta" id="valPlatform">Platform: Linux / Cloud</div>
+      </div>
+
+      <div class="status-card" id="cardDatabase">
+        <div class="status-header">
+          <span class="status-title">PostgreSQL Database</span>
+          <span class="indicator-dot checking" id="dbDot"></span>
+        </div>
+        <div class="status-value" id="valDb">Đang kết nối...</div>
+        <div class="status-meta" id="valDbLatency">Độ trễ: -- ms</div>
+      </div>
+
+      <div class="status-card" id="cardCount">
+        <div class="status-header">
+          <span class="status-title">Số bản ghi trong DB</span>
+          <span class="badge">Live</span>
+        </div>
+        <div class="status-value" id="valCount">0</div>
+        <div class="status-meta">Bảng: <code>notes</code></div>
+      </div>
+    </section>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Create Note Section -->
+      <section class="card form-card">
+        <h2>Thêm ghi chú mới vào Database</h2>
+        <p class="desc">Dữ liệu sẽ được lưu trực tiếp vào Supabase PostgreSQL trên Cloud.</p>
+        
+        <form id="noteForm">
+          <div class="form-group">
+            <label for="title">Tiêu đề <span class="required">*</span></label>
+            <input type="text" id="title" placeholder="Ví dụ: Họp nhóm dự án chiều nay..." required>
+          </div>
+
+          <div class="form-group">
+            <label for="content">Nội dung chi tiết</label>
+            <textarea id="content" rows="4" placeholder="Nhập nội dung ghi chú của bạn..."></textarea>
+          </div>
+
+          <button type="submit" id="btnSubmit" class="btn btn-primary">
+            <span class="btn-text">💾 Lưu vào Database</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Notes List Section -->
+      <section class="card list-card">
+        <div class="list-header">
+          <h2>Danh sách ghi chú</h2>
+          <span class="list-counter" id="listCounter">Đang tải...</span>
+        </div>
+        
+        <div id="notesContainer" class="notes-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Đang tải dữ liệu từ PostgreSQL...</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <p>Triển khai tự động bằng <strong>Render.com Web Service</strong> • Cơ sở dữ liệu <strong>Supabase Always Free</strong></p>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
