@@ -3,6 +3,17 @@
  * Game Logic, Web Audio Synthesizer, Question Bank, Balance Scale & Leaderboard
  */
 
+// Hàm mã hóa ký tự đặc biệt phòng chống tấn công XSS (Cross-Site Scripting)
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ============================================================
 // 1. WEB AUDIO SYNTHESIZER (Không cần file mp3, chạy 100% offline)
 // ============================================================
@@ -897,6 +908,14 @@ class MathKidsApp {
 
         if (tabTarget === 'tab-memory') {
           this.initMemoryGame();
+        } else if (this.memoryTimer) {
+          clearInterval(this.memoryTimer);
+        }
+
+        if (tabTarget !== 'tab-speed' && this.speedTimer) {
+          clearInterval(this.speedTimer);
+          document.getElementById('speedGameScreen').classList.add('hidden');
+          document.getElementById('speedIntroScreen').classList.remove('hidden');
         }
       });
     });
@@ -1632,19 +1651,22 @@ class MathKidsApp {
         row.className = `lb-row ${rankClass}`;
 
         const rankIcon = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `#${index + 1}`));
+        const safeName = escapeHtml(p.player_name);
+        const safeAvatar = escapeHtml(p.avatar || '🦉');
+        const safeMode = escapeHtml(p.mode);
 
         row.innerHTML = `
           <div class="lb-player">
             <span class="lb-rank">${rankIcon}</span>
-            <span class="lb-avatar">${p.avatar || '🦉'}</span>
+            <span class="lb-avatar">${safeAvatar}</span>
             <div>
-              <div class="lb-name">${p.player_name}</div>
-              <div class="lb-meta">Lớp ${p.grade} • Chế độ: ${p.mode}</div>
+              <div class="lb-name">${safeName}</div>
+              <div class="lb-meta">Lớp ${parseInt(p.grade) || 1} • Chế độ: ${safeMode}</div>
             </div>
           </div>
           <div class="lb-score-box">
-            <div class="lb-score-val">${p.score} điểm</div>
-            <div class="lb-stars-val">${p.stars} ⭐</div>
+            <div class="lb-score-val">${parseInt(p.score) || 0} điểm</div>
+            <div class="lb-stars-val">${parseInt(p.stars) || 0} ⭐</div>
           </div>
         `;
         listEl.appendChild(row);
@@ -1653,13 +1675,15 @@ class MathKidsApp {
       console.warn('Lỗi tải leaderboard online, hiển thị dữ liệu cục bộ:', e.message);
       document.getElementById('leaderboardStatusTag').textContent = '🟡 Chế độ Offline';
       // Local fallback
+      const safeUserName = escapeHtml(this.user.name);
+      const safeUserAvatar = escapeHtml(this.user.avatar);
       listEl.innerHTML = `
         <div class="lb-row top-1">
           <div class="lb-player">
             <span class="lb-rank">🥇</span>
-            <span class="lb-avatar">${this.user.avatar}</span>
+            <span class="lb-avatar">${safeUserAvatar}</span>
             <div>
-              <div class="lb-name">${this.user.name} (Bạn)</div>
+              <div class="lb-name">${safeUserName} (Bạn)</div>
               <div class="lb-meta">Lớp ${this.user.grade} • Thành tích hiện tại</div>
             </div>
           </div>

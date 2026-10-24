@@ -20,6 +20,11 @@ const pool = new Pool({
   }
 });
 
+// Xu ly su co bat ngo tren client PostgreSQL o trang thai cho (idle)
+pool.on('error', (err) => {
+  console.error('⚠️ Canh bao su co tren idle PostgreSQL client:', err.message);
+});
+
 // Khoi tao Database & Tao bang neu chua ton tai
 async function initDatabase() {
   try {
@@ -140,9 +145,16 @@ app.post('/api/notes', async (req, res) => {
 
 // 4. API Xoa ghi chu theo ID
 app.delete('/api/notes/:id', async (req, res) => {
-  const { id } = req.params;
+  const noteId = parseInt(req.params.id, 10);
+  if (isNaN(noteId)) {
+    return res.status(400).json({ error: 'ID ghi chu phai la so nguyen hop le' });
+  }
+
   try {
-    await pool.query('DELETE FROM notes WHERE id = $1', [id]);
+    const result = await pool.query('DELETE FROM notes WHERE id = $1', [noteId]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Khong tim thay ghi chu de xoa' });
+    }
     res.json({ success: true, message: 'Da xoa thanh cong' });
   } catch (err) {
     res.status(500).json({ error: 'Khong the xoa: ' + err.message });
@@ -166,8 +178,11 @@ app.get('/api/math/leaderboard', async (req, res) => {
       conditions.push(`mode = $${params.length}`);
     }
     if (grade && grade !== 'all') {
-      params.push(parseInt(grade));
-      conditions.push(`grade = $${params.length}`);
+      const gradeNum = parseInt(grade, 10);
+      if (!isNaN(gradeNum)) {
+        params.push(gradeNum);
+        conditions.push(`grade = $${params.length}`);
+      }
     }
 
     if (conditions.length > 0) {
