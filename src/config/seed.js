@@ -227,24 +227,61 @@ async function seedMultiCategoryCatalog(client, customerUserId) {
 async function seedDatabase() {
   const client = await pool.connect();
   try {
+    // 1. Luôn đảm bảo tài khoản Admin tồn tại
+    const adminCheck = await client.query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`);
+    if (adminCheck.rows.length === 0) {
+      const adminPassword = await bcrypt.hash('admin123', 10);
+      await client.query(`
+        INSERT INTO users (email, password_hash, full_name, phone, role)
+        VALUES ('admin@techpulse.vn', $1, 'Quản Trị Viên (Admin)', '0987654321', 'admin')
+        ON CONFLICT (email) DO NOTHING;
+      `, [adminPassword]);
+      console.log('✅ Đã tạo tài khoản quản trị mặc định: admin@techpulse.vn (Pass: admin123)');
+    }
+
+    // 2. Luôn đảm bảo cấu hình thương hiệu cửa hàng (Store Settings)
+    await client.query(`
+      INSERT INTO store_settings (
+        id, store_name, store_tagline, hero_badge, hero_title, hero_highlight,
+        hero_subtitle, hero_image, default_theme, unit_label, preset_key
+      )
+      VALUES (
+        1,
+        'ATELIER & CO.',
+        'Curated Multi-Category Store',
+        'Nền tảng Bán lẻ Đa ngành Thế hệ mới',
+        'Không Gian Mua Sắm Tuyển Chọn &',
+        'Trải Nghiệm Đa Biến Thể',
+        'Không gian mua sắm tuyển chọn — tùy chọn kích cỡ, chất liệu, dung tích linh hoạt cùng thanh toán VietQR 24/7 tức thì.',
+        '/assets/editorial/hero-flagship.svg',
+        'light',
+        'sản phẩm',
+        'multi_flagship'
+      )
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
+    // 3. Nếu không bật cờ AUTO_SEED=true thì không nạp lại dữ liệu mẫu (để giữ cơ sở dữ liệu sạch cho khách hàng)
+    if (process.env.AUTO_SEED !== 'true') {
+      return;
+    }
+
     const userCount = await client.query('SELECT COUNT(*) FROM users');
     let customerUserId = null;
 
-    if (parseInt(userCount.rows[0].count) === 0) {
+    if (parseInt(userCount.rows[0].count) <= 1) {
       console.log('🌱 Đang khởi tạo tài khoản và dữ liệu mẫu cho hệ thống...');
 
-      const adminPassword = await bcrypt.hash('admin123', 10);
       const userPassword = await bcrypt.hash('user123', 10);
 
       const usersRes = await client.query(`
         INSERT INTO users (email, password_hash, full_name, phone, role)
         VALUES 
-        ('admin@techpulse.vn', $1, 'Nguyễn Mạnh Hùng (Admin)', '0987654321', 'admin'),
-        ('user@techpulse.vn', $2, 'Trần Minh Khang (Khách hàng)', '0912345678', 'customer')
+        ('user@techpulse.vn', $1, 'Trần Minh Khang (Khách hàng)', '0912345678', 'customer')
         RETURNING id, email, role;
-      `, [adminPassword, userPassword]);
+      `, [userPassword]);
 
-      customerUserId = usersRes.rows[1]?.id || null;
+      customerUserId = usersRes.rows[0]?.id || null;
 
       await seedMultiCategoryCatalog(client, customerUserId);
 
