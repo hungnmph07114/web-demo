@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#F5F2EB"/>
+  <circle cx="400" cy="300" r="210" fill="#EAE4D7"/>
+  <!-- Hanger -->
+  <path d="M365 130C365 110 400 105 400 125C400 135 390 142 390 150" stroke="#27272A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M310 175L400 145L490 175" stroke="#27272A" stroke-width="5" stroke-linecap="round"/>
+  <!-- Tailored Trench Coat Silhouette -->
+  <path d="M295 175L225 385L275 400L315 265V485H485V265L525 400L575 385L505 175H295Z" fill="#D6C7B2" stroke="#18181B" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Lapels & Belt -->
+  <path d="M350 175L400 265L450 175" fill="#C5B39B" stroke="#18181B" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="312" y="330" width="176" height="22" rx="4" fill="#B8A386" stroke="#18181B" stroke-width="3"/>
+  <rect x="386" y="326" width="28" height="30" rx="4" fill="none" stroke="#18181B" stroke-width="3.5"/>
+  <circle cx="372" cy="295" r="5" fill="#18181B"/>
+  <circle cx="428" cy="295" r="5" fill="#18181B"/>
+  <circle cx="372" cy="385" r="5" fill="#18181B"/>
+  <circle cx="428" cy="385" r="5" fill="#18181B"/>
+  <text x="400" y="555" text-anchor="middle" fill="#52525B" font-family="Georgia, serif" font-size="14" letter-spacing="3">ATELIER APPAREL · ORGANIC LINEN</text>
+</svg>

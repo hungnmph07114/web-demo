@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#F6F3EE"/>
+  <circle cx="400" cy="300" r="205" fill="#EBE5DC"/>
+  <!-- Stone Pedestal -->
+  <rect x="220" y="430" width="360" height="45" rx="6" fill="#D6CFC2" stroke="#18181B" stroke-width="3"/>
+  <!-- Amber Serum Bottle -->
+  <rect x="285" y="255" width="110" height="175" rx="18" fill="#B45309" stroke="#18181B" stroke-width="3.5"/>
+  <rect x="302" y="295" width="76" height="96" rx="4" fill="#FAF8F5" stroke="#18181B" stroke-width="2.5"/>
+  <line x1="316" y1="325" x2="364" y2="325" stroke="#18181B" stroke-width="3.5"/>
+  <line x1="316" y1="345" x2="354" y2="345" stroke="#71717A" stroke-width="2.5"/>
+  <line x1="316" y1="362" x2="346" y2="362" stroke="#A1A1AA" stroke-width="2"/>
+  <rect x="322" y="220" width="36" height="35" rx="5" fill="#27272A" stroke="#18181B" stroke-width="3"/>
+  <path d="M330 220V190C330 176 350 176 350 190V220" fill="#18181B"/>
+  <!-- Artisanal Scented Candle Jar -->
+  <rect x="425" y="315" width="105" height="115" rx="10" fill="#27272A" stroke="#18181B" stroke-width="3.5"/>
+  <rect x="442" y="345" width="71" height="55" rx="3" fill="#F4F1EA"/>
+  <path d="M477 315C477 298 485 298 477 284C469 298 477 298 477 315Z" fill="#F59E0B"/>
+  <text x="400" y="555" text-anchor="middle" fill="#52525B" font-family="Georgia, serif" font-size="14" letter-spacing="3">BOTANICAL APOTHECARY · EAU DE PARFUM</text>
+</svg>

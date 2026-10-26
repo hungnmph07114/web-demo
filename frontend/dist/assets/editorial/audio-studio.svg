@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#EFEFEF"/>
+  <circle cx="400" cy="300" r="205" fill="#E2E2E2"/>
+  <!-- Headphone Arc -->
+  <path d="M270 325V265C270 175 530 175 530 265V325" stroke="#27272A" stroke-width="18" stroke-linecap="round"/>
+  <!-- Ear Cups -->
+  <rect x="245" y="295" width="58" height="115" rx="29" fill="#18181B" stroke="#52525B" stroke-width="3"/>
+  <rect x="497" y="295" width="58" height="115" rx="29" fill="#18181B" stroke="#52525B" stroke-width="3"/>
+  <rect x="285" y="310" width="24" height="85" rx="12" fill="#3F3F46"/>
+  <rect x="491" y="310" width="24" height="85" rx="12" fill="#3F3F46"/>
+  <text x="400" y="555" text-anchor="middle" fill="#52525B" font-family="Georgia, serif" font-size="14" letter-spacing="3">ACOUSTIC STUDIO · HI-FI REFERENCE</text>
+</svg>

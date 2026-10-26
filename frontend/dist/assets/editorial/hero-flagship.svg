@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" fill="#F4F1EA"/>
+  <!-- Architectural Sunlit Background -->
+  <path d="M0 0H750L520 675H0V0Z" fill="#EFECE4"/>
+  <rect x="80" y="70" width="460" height="535" rx="230" fill="#E5DEC9"/>
+  <circle cx="920" cy="210" r="145" fill="#DFD5C0" opacity="0.7"/>
+  <!-- Travertine Plinth -->
+  <path d="M180 520H1020L1060 610H140L180 520Z" fill="#D8CEB8"/>
+  <rect x="140" y="610" width="920" height="35" fill="#C4B89F"/>
+  <!-- Sculptural Ceramic Vase & Botanical Branch -->
+  <path d="M360 330C330 330 305 375 315 440L325 520H435L445 440C455 375 430 330 400 330H360Z" fill="#FAF8F5" stroke="#18181B" stroke-width="3"/>
+  <ellipse cx="380" cy="330" rx="24" ry="7" fill="#E4E4E7" stroke="#18181B" stroke-width="3"/>
+  <path d="M380 330C385 260 420 200 470 160" stroke="#3F3F46" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="430" cy="225" rx="22" ry="10" transform="rotate(-28 430 225)" fill="#52525B"/>
+  <ellipse cx="465" cy="180" rx="20" ry="9" transform="rotate(-15 465 180)" fill="#71717A"/>
+  <ellipse cx="395" cy="260" rx="18" ry="8" transform="rotate(25 395 260)" fill="#52525B"/>
+  <!-- Minimalist Amber Serum Bottle -->
+  <rect x="520" y="390" width="96" height="130" rx="14" fill="#B45309" stroke="#18181B" stroke-width="3"/>
+  <rect x="534" y="425" width="68" height="68" rx="4" fill="#FAF8F5" stroke="#18181B" stroke-width="2"/>
+  <line x1="546" y1="448" x2="590" y2="448" stroke="#18181B" stroke-width="3"/>
+  <line x1="546" y1="464" x2="578" y2="464" stroke="#71717A" stroke-width="2"/>
+  <rect x="553" y="362" width="30" height="28" rx="4" fill="#27272A"/>
+  <path d="M560 362V338C560 330 576 330 576 338V362" fill="#18181B"/>
+  <!-- Artisan Handbag / Apparel Silhouette -->
+  <path d="M710 355C710 315 745 285 785 285C825 285 860 315 860 355" stroke="#18181B" stroke-width="8" stroke-linecap="round"/>
+  <path d="M675 350H895L875 520H695L675 350Z" fill="#27272A" stroke="#18181B" stroke-width="3"/>
+  <rect x="755" y="395" width="60" height="24" rx="4" fill="#D4AF37"/>
+  <!-- Editorial Caption Watermark -->
+  <text x="80" y="65" fill="#52525B" font-family="Georgia, serif" font-size="16" letter-spacing="4">CURATED LIFESTYLE ARCHIVE · COLLECTION 2026</text>
+</svg>

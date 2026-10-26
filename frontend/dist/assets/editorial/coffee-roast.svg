@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#F3EFEA"/>
+  <rect x="150" y="85" width="500" height="430" rx="28" fill="#E6DFD5"/>
+  <!-- Coffee Bag -->
+  <path d="M250 215L270 175H385L405 215V435H250V215Z" fill="#27272A" stroke="#18181B" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="275" y="255" width="105" height="115" rx="6" fill="#F5F2EB"/>
+  <circle cx="327" cy="295" r="16" fill="#B45309"/>
+  <line x1="295" y1="332" x2="360" y2="332" stroke="#18181B" stroke-width="3"/>
+  <line x1="305" y1="348" x2="350" y2="348" stroke="#71717A" stroke-width="2"/>
+  <!-- Ceramic V60 Dripper & Carafe -->
+  <path d="M450 250H570L535 330H485L450 250Z" fill="#FAF8F5" stroke="#18181B" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M570 265H592C602 265 602 295 592 295H555" stroke="#18181B" stroke-width="4" stroke-linecap="round"/>
+  <path d="M475 330H545L565 435H455L475 330Z" fill="#D97706" fill-opacity="0.25" stroke="#18181B" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M463 385H557L564 432H456L463 385Z" fill="#78350F"/>
+  <text x="400" y="555" text-anchor="middle" fill="#52525B" font-family="Georgia, serif" font-size="14" letter-spacing="3">ARTISAN ROASTERY · SINGLE ORIGIN ARABICA</text>
+</svg>
