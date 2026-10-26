@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const notificationService = require('../notification/notificationService');
 
 class OrderService {
   /**
@@ -188,6 +189,12 @@ class OrderService {
       await client.query('COMMIT');
 
       order.items = verifiedItems;
+
+      // Gửi email xác nhận đơn hàng tự động (bất đồng bộ)
+      notificationService.sendOrderConfirmation(order, verifiedItems).catch((err) => {
+        console.error('Lỗi khi gửi email xác nhận đặt hàng:', err.message);
+      });
+
       return order;
     } catch (err) {
       await client.query('ROLLBACK');

@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const notificationService = require('../notification/notificationService');
 
 class WebhookService {
   constructor() {
@@ -208,6 +209,11 @@ class WebhookService {
       raw_payload: payload,
       status: 'success',
       response_message: successLog
+    });
+
+    // Tự động gửi email xác nhận đã thanh toán VietQR thành công
+    notificationService.sendPaymentSuccess(updatedOrder).catch((err) => {
+      console.error('Lỗi khi gửi email thông báo thanh toán thành công:', err.message);
     });
 
     return {

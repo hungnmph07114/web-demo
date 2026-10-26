@@ -10,6 +10,7 @@ const webhookController = require('../modules/webhook/webhookController');
 const reviewController = require('../modules/review/reviewController');
 const wishlistController = require('../modules/wishlist/wishlistController');
 const shippingController = require('../modules/shipping/shippingController');
+const notificationController = require('../modules/notification/notificationController');
 
 const { authenticate, optionalAuth, requireAdmin } = require('../middlewares/auth');
 
@@ -95,5 +96,11 @@ router.post('/wishlist/sync', authenticate, (req, res, next) => wishlistControll
 router.get('/shipping/tracking/:idOrDisplayId', (req, res, next) => shippingController.getShipmentTracking(req, res, next));
 router.post('/shipping/:orderId/carrier', authenticate, requireAdmin, (req, res, next) => shippingController.updateCarrier(req, res, next));
 router.post('/shipping/:orderId/simulate-step', authenticate, requireAdmin, (req, res, next) => shippingController.simulateNextStep(req, res, next));
+
+// ==========================================
+// 10. TRANSACTIONAL EMAIL NOTIFICATIONS (NODEMAILER)
+// ==========================================
+router.get('/notifications/logs', authenticate, requireAdmin, (req, res, next) => notificationController.getLogs(req, res, next));
+router.post('/notifications/test', authenticate, requireAdmin, (req, res, next) => notificationController.testNotification(req, res, next));
 
 module.exports = router;

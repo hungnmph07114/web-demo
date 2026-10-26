@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatMoney, fetchApi, exportOrdersToCSV } from '../services/api';
-import { RefreshCw, Plus, DollarSign, Package, Clock, AlertTriangle, QrCode, Tag, Layers, Eye, Edit3, Zap, Send, Download } from 'lucide-react';
+import { RefreshCw, Plus, DollarSign, Package, Clock, AlertTriangle, QrCode, Tag, Layers, Eye, Edit3, Zap, Send, Download, Mail, ExternalLink } from 'lucide-react';
 import AdminOrderDetailModal from './AdminOrderDetailModal';
 import AdminCreateProductModal from './AdminCreateProductModal';
 import AdminCreatePromoModal from './AdminCreatePromoModal';
@@ -13,6 +13,10 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
   const [inventory, setInventory] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [webhookLogs, setWebhookLogs] = useState([]);
+  const [emailLogs, setEmailLogs] = useState([]);
+  const [testEmailRecipient, setTestEmailRecipient] = useState('khachhang@techpulse.vn');
+  const [testEmailType, setTestEmailType] = useState('ORDER');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [filterPayment, setFilterPayment] = useState('all');
   const [filterFulfillment, setFilterFulfillment] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
@@ -33,18 +37,20 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [mRes, oRes, iRes, pRes, wRes] = await Promise.all([
+      const [mRes, oRes, iRes, pRes, wRes, eRes] = await Promise.all([
         fetchApi('/api/dashboard/metrics', {}, token),
         fetchApi('/api/orders', {}, token),
         fetchApi('/api/products', {}, token),
         fetchApi('/api/promotions', {}, token),
-        fetchApi('/api/webhooks/vietqr/logs?limit=30', {}, token).catch(() => ({ data: [] }))
+        fetchApi('/api/webhooks/vietqr/logs?limit=30', {}, token).catch(() => ({ data: [] })),
+        fetchApi('/api/notifications/logs?limit=30', {}, token).catch(() => ({ data: [] }))
       ]);
       setMetrics(mRes.data);
       setOrders(oRes.data);
       setInventory(iRes.data);
       setPromotions(pRes.data);
       setWebhookLogs(wRes.data || []);
+      setEmailLogs(eRes.data || []);
     } catch (err) {
       onToast(err.message, 'error');
     } finally {
@@ -132,6 +138,36 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
     }
   };
 
+  const handleSendTestEmail = async (e) => {
+    e.preventDefault();
+    if (!testEmailRecipient.trim()) {
+      onToast('Vui lòng nhập địa chỉ email người nhận', 'error');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const res = await fetchApi('/api/notifications/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: testEmailRecipient.trim(),
+          type: testEmailType
+        })
+      }, token);
+
+      if (res.success) {
+        onToast(`Đã gửi email thử nghiệm (${testEmailType}) thành công!`);
+        loadData();
+      } else {
+        onToast(res.message || 'Lỗi khi gửi email', 'error');
+      }
+    } catch (err) {
+      onToast(err.message, 'error');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   // Filtered orders
   const filteredOrders = orders.filter((o) => {
     if (filterPayment !== 'all' && o.payment_status !== filterPayment) return false;
@@ -208,6 +244,12 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
           onClick={() => setActiveTab('tabWebhooks')}
         >
           ⚡ Cổng VietQR 24/7 ({webhookLogs.length})
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'tabEmails' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tabEmails')}
+        >
+          📧 Email & Thông báo ({emailLogs.length})
         </button>
       </div>
 
@@ -809,6 +851,157 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
                         </td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '320px' }}>
                           {log.response_message}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Transactional Emails & Notifications (Nodemailer) */}
+      {activeTab === 'tabEmails' && (
+        <div className="admin-tab-content active">
+          {/* Simulator Bar */}
+          <div className="webhook-sim-card" style={{ marginBottom: '1.5rem', background: 'rgba(30, 41, 59, 0.7)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '12px', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ background: 'rgba(56, 189, 248, 0.15)', padding: '8px', borderRadius: '8px', color: 'var(--accent-cyan)' }}>
+                <Mail size={20} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: '#fff', fontWeight: 600 }}>
+                  Trình Thử Nghiệm Email Giao Dịch Tự Động (Nodemailer Sandbox)
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+                  Kiểm thử gửi email HTML responsive định dạng cao cấp theo thời gian thực
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSendTestEmail} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <input
+                type="email"
+                placeholder="Email người nhận (VD: khachhang@techpulse.vn)..."
+                value={testEmailRecipient}
+                onChange={(e) => setTestEmailRecipient(e.target.value)}
+                style={{
+                  flex: '1 1 240px',
+                  padding: '0.6rem 0.85rem',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.85rem'
+                }}
+              />
+              <select
+                value={testEmailType}
+                onChange={(e) => setTestEmailType(e.target.value)}
+                style={{
+                  padding: '0.6rem 0.85rem',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="ORDER">📩 1. Xác nhận đơn hàng (Kèm VietQR)</option>
+                <option value="PAYMENT">🎉 2. Thanh toán VietQR thành công</option>
+                <option value="SHIPPING">🚚 3. Bưu tá mang kiện hàng đi giao</option>
+              </select>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSendingEmail}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem' }}
+              >
+                <Send size={15} className={isSendingEmail ? 'animate-spin' : ''} />
+                <span>{isSendingEmail ? 'Đang gửi...' : 'Gửi thử nghiệm'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Logs Table */}
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Loại thông báo</th>
+                  <th>Email người nhận</th>
+                  <th>Tiêu đề Email</th>
+                  <th>Trạng thái</th>
+                  <th style={{ textAlign: 'right' }}>Xem trước (Ethereal)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emailLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      Chưa có email giao dịch nào được gửi đi trong phiên làm việc này.
+                    </td>
+                  </tr>
+                ) : (
+                  emailLogs.map((log) => {
+                    let badgeType = 'badge-processing';
+                    let typeLabel = log.template_type;
+
+                    if (log.template_type === 'ORDER_CONFIRMATION') {
+                      badgeType = 'badge-packing';
+                      typeLabel = 'Xác nhận đơn';
+                    } else if (log.template_type === 'PAYMENT_SUCCESS') {
+                      badgeType = 'badge-delivered';
+                      typeLabel = 'Thanh toán thành công';
+                    } else if (log.template_type === 'SHIPPING_OUT') {
+                      badgeType = 'badge-shipped';
+                      typeLabel = 'Bưu tá đi giao';
+                    }
+
+                    return (
+                      <tr key={log.id}>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {new Date(log.created_at).toLocaleTimeString('vi-VN')} {new Date(log.created_at).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${badgeType}`}>{typeLabel}</span>
+                        </td>
+                        <td>
+                          <strong style={{ color: '#fff' }}>{log.to_email}</strong>
+                        </td>
+                        <td style={{ fontSize: '0.85rem', color: 'var(--text-main)', maxWidth: '300px' }}>
+                          {log.subject}
+                        </td>
+                        <td>
+                          {log.status === 'sent' ? (
+                            <span className="status-badge badge-delivered" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
+                              ✅ Đã gửi
+                            </span>
+                          ) : (
+                            <span className="status-badge badge-cancelled" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>
+                              ❌ Thất bại
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          {log.preview_url ? (
+                            <a
+                              href={log.preview_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--accent-cyan)' }}
+                            >
+                              <span>Mở Ethereal</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Console/SMTP</span>
+                          )}
                         </td>
                       </tr>
                     );

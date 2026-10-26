@@ -212,6 +212,20 @@ async function initDatabase() {
       );
     `);
 
+    // 14. Bang Email Logs (Nhat ky email thong bao he thong)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS email_logs (
+        id SERIAL PRIMARY KEY,
+        order_id INT REFERENCES orders(id) ON DELETE SET NULL,
+        to_email VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        template_type VARCHAR(50) NOT NULL,
+        preview_url TEXT,
+        status VARCHAR(50) DEFAULT 'sent',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     console.log('✨ Khoi tao he thong co so du lieu TechPulse Modular E-Commerce thanh cong!');
   } catch (error) {
     console.error('❌ Loi khi khoi tao Database:', error);

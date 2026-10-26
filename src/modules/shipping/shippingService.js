@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const notificationService = require('../notification/notificationService');
 
 class ShippingService {
   /**
@@ -203,6 +204,18 @@ class ShippingService {
           INSERT INTO order_logs (order_id, action, note)
           VALUES ($1, 'FULFILLMENT_CHANGE', $2)
         `, [orderId, `Trạng thái giao vận tự động cập nhật sang: ${newFulfillment}`]);
+      }
+
+      // Nếu đang đi giao hàng, gửi email thông báo bưu tá cho khách
+      if (newEvent.status === 'out_for_delivery') {
+        notificationService.sendShippingNotification(order, {
+          carrierName: order.shipping_carrier,
+          trackingCode: order.tracking_code,
+          driverName: order.driver_name,
+          driverPhone: order.driver_phone
+        }).catch((err) => {
+          console.error('Lỗi khi gửi email thông báo bưu tá đi giao:', err.message);
+        });
       }
 
       return {
