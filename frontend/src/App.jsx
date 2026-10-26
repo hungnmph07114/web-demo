@@ -18,10 +18,19 @@ export default function App() {
   // Navigation & View Mode
   const [viewMode, setViewMode] = useState('store'); // 'store' | 'admin'
 
+  // Store Settings & Theme Mode ('light' | 'dark')
+  const [storeSettings, setStoreSettings] = useState(null);
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem('atelier_theme_mode') || 'light';
+  });
+
   // Data
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [priceRange, setPriceRange] = useState('all');
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
@@ -127,14 +136,38 @@ export default function App() {
     }
   }, [token]);
 
-  // Load Categories
+  // Sync Theme Mode with document root
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', themeMode);
+    localStorage.setItem('atelier_theme_mode', themeMode);
+  }, [themeMode]);
+
+  const handleToggleTheme = () => {
+    setThemeMode((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Load Store Settings & Categories
+  const loadCategories = useCallback(() => {
     fetchApi('/api/products/categories')
-      .then((res) => setCategories(res.data))
+      .then((res) => setCategories(res.data || []))
       .catch((err) => console.error('Error fetching categories:', err));
   }, []);
 
-  // Load Products (filter by category & search)
+  useEffect(() => {
+    loadCategories();
+    fetchApi('/api/store/settings')
+      .then((res) => {
+        if (res.data) {
+          setStoreSettings(res.data);
+          if (!localStorage.getItem('atelier_theme_mode') && res.data.default_theme) {
+            setThemeMode(res.data.default_theme);
+          }
+        }
+      })
+      .catch((err) => console.error('Error fetching store settings:', err));
+  }, [loadCategories]);
+
+  // Load Products (filter by category, search, priceRange, inStockOnly, sortBy)
   const loadProducts = useCallback(async () => {
     setIsLoadingProducts(true);
     try {
@@ -145,6 +178,15 @@ export default function App() {
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
       }
+      if (priceRange && priceRange !== 'all') {
+        params.append('priceRange', priceRange);
+      }
+      if (inStockOnly) {
+        params.append('inStockOnly', 'true');
+      }
+      if (sortBy && sortBy !== 'newest') {
+        params.append('sortBy', sortBy);
+      }
       const res = await fetchApi(`/api/products?${params.toString()}`);
       setProducts(res.data);
     } catch (err) {
@@ -152,7 +194,7 @@ export default function App() {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [activeCategory, searchQuery, addToast]);
+  }, [activeCategory, searchQuery, priceRange, inStockOnly, sortBy, addToast]);
 
   useEffect(() => {
     loadProducts();
@@ -316,6 +358,9 @@ export default function App() {
     <div>
       {/* Header */}
       <Navbar
+        storeSettings={storeSettings}
+        themeMode={themeMode}
+        onToggleTheme={handleToggleTheme}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         viewMode={viewMode}
@@ -340,24 +385,33 @@ export default function App() {
           <div>
             {/* Hero */}
             <HeroBanner
+              storeSettings={storeSettings}
               onCopyVoucher={(code) => {
                 navigator.clipboard.writeText(code);
-                addToast(`Đã sao chép mã ${code}!`);
+                addToast(`Đã sao chép mã ưu đãi ${code}!`);
               }}
             />
 
-            {/* Category Filter */}
+            {/* Category & Advanced Filter */}
             <CategoryFilter
               categories={categories}
               activeCategory={activeCategory}
               onSelectCategory={setActiveCategory}
+              priceRange={priceRange}
+              onSelectPriceRange={setPriceRange}
+              inStockOnly={inStockOnly}
+              onToggleInStock={setInStockOnly}
+              sortBy={sortBy}
+              onSelectSort={setSortBy}
             />
 
             {/* Products Header */}
             <div className="products-header">
-              <h2 className="section-title">Danh Sách Sản Phẩm Công Nghệ</h2>
+              <h2 className="section-title">Bộ Sưu Tập Sản Phẩm Tuyển Chọn</h2>
               <span className="products-count-badge">
-                {isLoadingProducts ? 'Đang tải...' : `Hiển thị ${products.length} sản phẩm`}
+                {isLoadingProducts
+                  ? 'Đang tải...'
+                  : `Hiển thị ${products.length} ${storeSettings?.unit_label || 'sản phẩm'}`}
               </span>
             </div>
 
@@ -378,6 +432,18 @@ export default function App() {
           /* Admin Portal */
           <AdminPortal
             token={token}
+            storeSettings={storeSettings}
+            onStoreSettingsUpdated={(updated) => {
+              setStoreSettings(updated);
+              if (updated.default_theme) {
+                setThemeMode(updated.default_theme);
+              }
+            }}
+            onCategoriesUpdated={() => {
+              loadCategories();
+              loadProducts();
+            }}
+            onProductsUpdated={loadProducts}
             onToast={addToast}
             onOpenProductModal={(id) => setSelectedProductId(id)}
           />
@@ -387,6 +453,7 @@ export default function App() {
       {/* Modals & Drawers */}
       <ProductModal
         product={detailedProduct}
+        storeSettings={storeSettings}
         onClose={() => setSelectedProductId(null)}
         onAddToCart={handleAddToCart}
         onToast={addToast}
@@ -400,6 +467,7 @@ export default function App() {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cart={cart}
+        storeSettings={storeSettings}
         onUpdateQty={handleUpdateQty}
         onRemoveItem={handleRemoveItem}
         appliedVoucher={appliedVoucher}
@@ -416,6 +484,7 @@ export default function App() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         cart={cart}
+        storeSettings={storeSettings}
         appliedVoucher={appliedVoucher}
         user={user}
         onSubmitOrder={handleOrderSubmit}
@@ -428,7 +497,13 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
+        user={user}
+        token={token}
         onAuthSuccess={handleAuthSuccess}
+        onProfileUpdated={(updatedUser) => {
+          setUser(updatedUser);
+          localStorage.setItem('techpulse_user', JSON.stringify(updatedUser));
+        }}
         onToast={addToast}
       />
 
@@ -447,6 +522,7 @@ export default function App() {
         onClose={() => setIsMyOrdersOpen(false)}
         token={token}
         onToast={addToast}
+        onOrderUpdated={loadProducts}
         onOpenTracking={(displayId) => {
           setTrackingInitialQuery(displayId);
           setIsTrackingOpen(true);

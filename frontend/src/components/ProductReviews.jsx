@@ -18,7 +18,7 @@ export default function ProductReviews({ productId, token, currentUser, onToast 
   const [hoverRating, setHoverRating] = useState(0);
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
-  const [userName, setUserName] = useState(currentUser?.fullName || '');
+  const [userName, setUserName] = useState(currentUser?.full_name || currentUser?.fullName || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const starLabels = {
@@ -46,8 +46,8 @@ export default function ProductReviews({ productId, token, currentUser, onToast 
 
   useEffect(() => {
     loadReviews();
-    if (currentUser?.fullName) {
-      setUserName(currentUser.fullName);
+    if (currentUser?.full_name || currentUser?.fullName) {
+      setUserName(currentUser.full_name || currentUser.fullName);
     }
   }, [productId, currentUser]);
 
@@ -92,7 +92,6 @@ export default function ProductReviews({ productId, token, currentUser, onToast 
   };
 
   const handleDelete = async (reviewId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này?')) return;
     try {
       const res = await fetchApi(`/api/reviews/${reviewId}`, {
         method: 'DELETE'

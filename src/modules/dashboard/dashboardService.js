@@ -2,17 +2,20 @@ const { pool } = require('../../config/db');
 
 class DashboardService {
   async getStats() {
-    // 1. Doanh thu & tong don
+    // 1. Doanh thu & tổng đơn + phân bổ phương thức thanh toán
     const revRes = await pool.query(`
       SELECT 
         COALESCE(SUM(CASE WHEN payment_status = 'captured' THEN total_amount ELSE 0 END), 0) as total_revenue,
         COUNT(*) as total_orders,
-        COUNT(CASE WHEN payment_status = 'awaiting_vietqr' THEN 1 END) as pending_payment_orders,
-        COUNT(CASE WHEN fulfillment_status = 'delivered' THEN 1 END) as completed_orders
+        COUNT(CASE WHEN payment_status = 'awaiting_vietqr' AND fulfillment_status != 'canceled' THEN 1 END) as pending_payment_orders,
+        COUNT(CASE WHEN fulfillment_status = 'delivered' THEN 1 END) as completed_orders,
+        COUNT(CASE WHEN fulfillment_status = 'canceled' THEN 1 END) as canceled_orders,
+        COUNT(CASE WHEN payment_method = 'vietqr' THEN 1 END) as vietqr_orders,
+        COUNT(CASE WHEN payment_method = 'cod' THEN 1 END) as cod_orders
       FROM orders;
     `);
 
-    // 2. Tong so luong san pham va bien the
+    // 2. Tổng số lượng sản phẩm và biến thể
     const prodCountRes = await pool.query(`
       SELECT 
         (SELECT COUNT(*) FROM products WHERE is_published = true) as total_products,
@@ -20,7 +23,7 @@ class DashboardService {
         (SELECT COUNT(*) FROM product_variants WHERE inventory_quantity <= 5 AND is_active = true) as low_stock_variants;
     `);
 
-    // 3. Doanh so theo danh muc
+    // 3. Doanh số theo danh mục
     const categoryStatsRes = await pool.query(`
       SELECT 
         c.name as category_name,
@@ -35,7 +38,7 @@ class DashboardService {
       ORDER BY total_sales DESC;
     `);
 
-    // 4. Don hang gan nhat
+    // 4. Đơn hàng gần nhất
     const recentOrdersRes = await pool.query(`
       SELECT id, display_id, customer_name, total_amount, payment_status, fulfillment_status, created_at
       FROM orders
@@ -43,33 +46,60 @@ class DashboardService {
       LIMIT 5;
     `);
 
-    // 5. San pham sap het hang (canh bao kho)
+    // 5. Sản phẩm sắp hết hàng (cảnh báo kho)
     const lowStockRes = await pool.query(`
       SELECT 
         v.id,
+        v.product_id,
         v.title as variant_title,
         v.sku,
+        v.price,
         v.inventory_quantity,
         p.title as product_title,
         p.thumbnail
       FROM product_variants v
       JOIN products p ON v.product_id = p.id
-      WHERE v.inventory_quantity <= 6 AND v.is_active = true
+      WHERE v.inventory_quantity <= 8 AND v.is_active = true
       ORDER BY v.inventory_quantity ASC
       LIMIT 6;
     `);
 
+    // 6. Top sản phẩm bán chạy nhất
+    const topProductsRes = await pool.query(`
+      SELECT 
+        oi.product_title,
+        oi.variant_title,
+        oi.sku,
+        MAX(oi.thumbnail) as thumbnail,
+        SUM(oi.quantity) as total_sold,
+        SUM(oi.total_price) as total_revenue
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.fulfillment_status != 'canceled'
+      GROUP BY oi.product_title, oi.variant_title, oi.sku
+      ORDER BY total_revenue DESC
+      LIMIT 5;
+    `);
+
+    const row = revRes.rows[0] || {};
+    const pRow = prodCountRes.rows[0] || {};
+
     return {
-      revenue: parseFloat(revRes.rows[0].total_revenue),
-      totalOrders: parseInt(revRes.rows[0].total_orders),
-      pendingPaymentOrders: parseInt(revRes.rows[0].pending_payment_orders),
-      completedOrders: parseInt(revRes.rows[0].completed_orders),
-      totalProducts: parseInt(prodCountRes.rows[0].total_products),
-      totalVariants: parseInt(prodCountRes.rows[0].total_variants),
-      lowStockVariantsCount: parseInt(prodCountRes.rows[0].low_stock_variants),
+      revenue: parseFloat(row.total_revenue || 0),
+      totalOrders: parseInt(row.total_orders || 0, 10),
+      pendingPaymentOrders: parseInt(row.pending_payment_orders || 0, 10),
+      completedOrders: parseInt(row.completed_orders || 0, 10),
+      canceledOrders: parseInt(row.canceled_orders || 0, 10),
+      vietqrOrders: parseInt(row.vietqr_orders || 0, 10),
+      codOrders: parseInt(row.cod_orders || 0, 10),
+      totalProducts: parseInt(pRow.total_products || 0, 10),
+      totalVariants: parseInt(pRow.total_variants || 0, 10),
+      lowStockVariantsCount: parseInt(pRow.low_stock_variants || 0, 10),
+      lowStockCount: parseInt(pRow.low_stock_variants || 0, 10),
       categoryStats: categoryStatsRes.rows,
       recentOrders: recentOrdersRes.rows,
-      lowStockItems: lowStockRes.rows
+      lowStockItems: lowStockRes.rows,
+      topProducts: topProductsRes.rows
     };
   }
 }

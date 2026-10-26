@@ -13,6 +13,7 @@ const shippingController = require('../modules/shipping/shippingController');
 const notificationController = require('../modules/notification/notificationController');
 
 const { authenticate, optionalAuth, requireAdmin } = require('../middlewares/auth');
+const { authRateLimiter, orderRateLimiter, webhookRateLimiter } = require('../middlewares/security');
 
 // ==========================================
 // 0. HEALTH CHECK
@@ -29,14 +30,24 @@ router.get('/health', (req, res) => {
 // ==========================================
 // 1. AUTHENTICATION & USER ROUTES
 // ==========================================
-router.post('/auth/login', (req, res, next) => authController.login(req, res, next));
-router.post('/auth/register', (req, res, next) => authController.register(req, res, next));
+router.post('/auth/login', authRateLimiter, (req, res, next) => authController.login(req, res, next));
+router.post('/auth/register', authRateLimiter, (req, res, next) => authController.register(req, res, next));
 router.get('/auth/me', authenticate, (req, res, next) => authController.getMe(req, res, next));
+router.put('/auth/profile', authenticate, (req, res, next) => authController.updateProfile(req, res, next));
+router.post('/auth/change-password', authenticate, (req, res, next) => authController.changePassword(req, res, next));
 
 // ==========================================
-// 2. PRODUCT & CATEGORY ROUTES (MEDUSA-STYLE)
+// 2. STORE SETTINGS, PRODUCT & CATEGORY ROUTES
 // ==========================================
+router.get('/store/settings', (req, res, next) => productController.getStoreSettings(req, res, next));
+router.put('/store/settings', authenticate, requireAdmin, (req, res, next) => productController.updateStoreSettings(req, res, next));
+
+router.post('/products/upload-image', authenticate, requireAdmin, (req, res, next) => productController.uploadImage(req, res, next));
+
 router.get('/products/categories', (req, res, next) => productController.getCategories(req, res, next));
+router.post('/products/categories', authenticate, requireAdmin, (req, res, next) => productController.createCategory(req, res, next));
+router.delete('/products/categories/:id', authenticate, requireAdmin, (req, res, next) => productController.deleteCategory(req, res, next));
+
 router.get('/products', (req, res, next) => productController.getProducts(req, res, next));
 router.get('/products/:idOrSlug', (req, res, next) => productController.getProductByIdOrSlug(req, res, next));
 
@@ -44,7 +55,9 @@ router.get('/products/:idOrSlug', (req, res, next) => productController.getProdu
 router.post('/products', authenticate, requireAdmin, (req, res, next) => productController.createProduct(req, res, next));
 router.put('/products/:id', authenticate, requireAdmin, (req, res, next) => productController.updateProduct(req, res, next));
 router.delete('/products/:id', authenticate, requireAdmin, (req, res, next) => productController.deleteProduct(req, res, next));
+router.post('/products/:id/variants', authenticate, requireAdmin, (req, res, next) => productController.createVariant(req, res, next));
 router.put('/products/variants/:variantId', authenticate, requireAdmin, (req, res, next) => productController.updateVariant(req, res, next));
+router.delete('/products/variants/:variantId', authenticate, requireAdmin, (req, res, next) => productController.deleteVariant(req, res, next));
 
 // ==========================================
 // 3. PROMOTIONS & VOUCHERS
@@ -57,10 +70,12 @@ router.patch('/promotions/:id/toggle', authenticate, requireAdmin, (req, res, ne
 // ==========================================
 // 4. ORDERS & DUAL STATE MACHINE & VIETQR
 // ==========================================
-router.post('/orders', optionalAuth, (req, res, next) => orderController.create(req, res, next));
+router.post('/orders', orderRateLimiter, optionalAuth, (req, res, next) => orderController.create(req, res, next));
 router.get('/orders', authenticate, requireAdmin, (req, res, next) => orderController.list(req, res, next));
 router.get('/orders/my-orders', authenticate, (req, res, next) => orderController.getMyOrders(req, res, next));
-router.get('/orders/:idOrDisplayId', (req, res, next) => orderController.getDetails(req, res, next));
+router.post('/orders/expire-stale', authenticate, requireAdmin, (req, res, next) => orderController.expireStaleOrders(req, res, next));
+router.get('/orders/:idOrDisplayId', optionalAuth, (req, res, next) => orderController.getDetails(req, res, next));
+router.post('/orders/:id/cancel', authenticate, (req, res, next) => orderController.cancelMyOrder(req, res, next));
 router.patch('/orders/:id/payment', authenticate, requireAdmin, (req, res, next) => orderController.updatePayment(req, res, next));
 router.patch('/orders/:id/fulfillment', authenticate, requireAdmin, (req, res, next) => orderController.updateFulfillment(req, res, next));
 
@@ -72,8 +87,8 @@ router.get('/dashboard/metrics', authenticate, requireAdmin, (req, res, next) =>
 // ==========================================
 // 6. VIETQR 24/7 BANK WEBHOOKS & SIMULATOR
 // ==========================================
-router.post('/webhooks/vietqr', (req, res, next) => webhookController.handleBankTransfer(req, res, next));
-router.post('/webhooks/vietqr/simulate', (req, res, next) => webhookController.simulateTransfer(req, res, next));
+router.post('/webhooks/vietqr', webhookRateLimiter, (req, res, next) => webhookController.handleBankTransfer(req, res, next));
+router.post('/webhooks/vietqr/simulate', webhookRateLimiter, (req, res, next) => webhookController.simulateTransfer(req, res, next));
 router.get('/webhooks/vietqr/logs', authenticate, requireAdmin, (req, res, next) => webhookController.getLogs(req, res, next));
 
 // ==========================================

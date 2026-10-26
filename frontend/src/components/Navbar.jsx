@@ -1,7 +1,10 @@
 import React from 'react';
-import { ShoppingCart, Search, X, User, Shield, Store, Zap, Truck, ShoppingBag, Heart } from 'lucide-react';
+import { ShoppingCart, Search, X, User, Shield, Store, Truck, ShoppingBag, Heart, Sun, Moon } from 'lucide-react';
 
 export default function Navbar({
+  storeSettings,
+  themeMode = 'light',
+  onToggleTheme,
   searchQuery,
   setSearchQuery,
   viewMode,
@@ -16,31 +19,34 @@ export default function Navbar({
   onOpenMyOrders,
   onLogout
 }) {
+  const storeName = storeSettings?.store_name || 'ATELIER & CO.';
+  const storeTagline = storeSettings?.store_tagline || 'Curated Multi-Category Store';
+
   return (
     <header className="app-header">
       <div className="header-container">
         {/* Brand Logo */}
         <div className="logo-group" onClick={() => setViewMode('store')} style={{ cursor: 'pointer' }}>
           <div className="logo-icon">
-            <Zap size={22} />
+            <Store size={20} />
           </div>
           <div className="logo-text">
-            <span className="brand-name">TechPulse</span>
-            <span className="brand-tag">Modular Engine v2</span>
+            <span className="brand-name">{storeName}</span>
+            <span className="brand-tag">{storeTagline}</span>
           </div>
         </div>
 
         {/* Live Search Box */}
         <div className="search-box">
-          <Search size={18} className="search-icon" />
+          <Search size={17} className="search-icon" />
           <input
             type="text"
-            placeholder="Tìm kiếm iPhone, MacBook, Sony, SKU biến thể..."
+            placeholder="Tìm kiếm thời trang, nội thất, mỹ phẩm, cà phê hoặc mã SKU..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
+            <button className="search-clear-btn" onClick={() => setSearchQuery('')} aria-label="Xóa tìm kiếm">
               <X size={16} />
             </button>
           )}
@@ -48,10 +54,33 @@ export default function Navbar({
 
         {/* Navigation & Controls */}
         <nav className="nav-actions">
+          {/* Theme Switcher (Editorial Light / Studio Dark) */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{
+              padding: '7px 11px',
+              fontSize: '0.78rem',
+              borderRadius: 'var(--radius-md)',
+              whiteSpace: 'nowrap'
+            }}
+            onClick={onToggleTheme}
+            title={themeMode === 'light' ? 'Chuyển sang giao diện Tối (Studio Dark)' : 'Chuyển sang giao diện Sáng (Editorial Light)'}
+          >
+            {themeMode === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+            <span>{themeMode === 'light' ? 'Tối' : 'Sáng'}</span>
+          </button>
+
           {/* Order Tracking Button */}
           <button
+            type="button"
             className="btn btn-secondary"
-            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: 'var(--radius-full)' }}
+            style={{
+              padding: '7px 12px',
+              fontSize: '0.78rem',
+              borderRadius: 'var(--radius-md)',
+              whiteSpace: 'nowrap'
+            }}
             onClick={onOpenTracking}
             title="Tra cứu tình trạng đơn hàng & VietQR"
           >
@@ -62,17 +91,19 @@ export default function Navbar({
           {/* View Mode Switcher */}
           <div className="view-switch-pill">
             <button
+              type="button"
               className={`switch-btn ${viewMode === 'store' ? 'active' : ''}`}
               onClick={() => setViewMode('store')}
             >
-              <Store size={15} />
+              <Store size={14} />
               <span>Cửa hàng</span>
             </button>
             <button
+              type="button"
               className={`switch-btn ${viewMode === 'admin' ? 'active' : ''}`}
               onClick={() => setViewMode('admin')}
             >
-              <Shield size={15} />
+              <Shield size={14} />
               <span>Quản trị</span>
             </button>
           </div>
@@ -80,21 +111,27 @@ export default function Navbar({
           {/* User Auth Info */}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="btn btn-secondary"
                 style={{
-                  fontSize: '0.85rem',
+                  padding: '6px 10px',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   color: user.role === 'admin' ? 'var(--accent-amber)' : 'var(--text-main)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  borderRadius: 'var(--radius-md)',
+                  whiteSpace: 'nowrap'
                 }}
+                title="Cập nhật hồ sơ & Đổi mật khẩu bảo mật"
               >
-                {user.role === 'admin' ? '👑' : '👤'} {user.full_name}
-              </span>
+                <User size={13} />
+                <span>{user.full_name}</span>
+              </button>
               <button
+                type="button"
                 className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: 'var(--radius-full)' }}
+                style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: 'var(--radius-md)', whiteSpace: 'nowrap' }}
                 onClick={onOpenMyOrders}
                 title="Xem lịch sử đơn hàng đã đặt"
               >
@@ -102,61 +139,60 @@ export default function Navbar({
                 <span>Đơn của tôi</span>
               </button>
               <button
+                type="button"
                 className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: 'var(--radius-md)', whiteSpace: 'nowrap' }}
                 onClick={onLogout}
               >
                 Đăng xuất
               </button>
             </div>
           ) : (
-            <button className="btn-auth" onClick={onOpenAuth}>
-              <User size={16} />
+            <button type="button" className="btn-auth" onClick={onOpenAuth}>
+              <User size={15} />
               <span>Đăng nhập</span>
             </button>
           )}
 
           {/* Wishlist Button */}
           <button
+            type="button"
             className="btn btn-secondary"
             style={{
-              padding: '6px 12px',
-              fontSize: '0.8rem',
-              borderRadius: 'var(--radius-full)',
+              padding: '7px 12px',
+              fontSize: '0.78rem',
+              borderRadius: 'var(--radius-md)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              position: 'relative'
+              position: 'relative',
+              whiteSpace: 'nowrap'
             }}
             onClick={onOpenWishlist}
             title="Xem danh sách sản phẩm yêu thích"
           >
             <Heart
               size={15}
-              fill={wishlistCount > 0 ? '#EF4444' : 'transparent'}
-              color={wishlistCount > 0 ? '#EF4444' : 'var(--text-muted)'}
+              fill={wishlistCount > 0 ? '#BE123C' : 'transparent'}
+              color={wishlistCount > 0 ? '#BE123C' : 'var(--text-muted)'}
             />
             <span>Yêu thích</span>
             {wishlistCount > 0 && (
               <span
                 style={{
-                  background: '#EF4444',
-                  color: '#fff',
-                  borderRadius: '999px',
-                  padding: '1px 6px',
-                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  marginLeft: '2px'
+                  color: '#BE123C',
+                  fontVariantNumeric: 'tabular-nums'
                 }}
               >
-                {wishlistCount}
+                ({wishlistCount})
               </span>
             )}
           </button>
 
           {/* Cart Button */}
-          <button className="btn-cart" onClick={onOpenCart} aria-label="Giỏ hàng">
-            <ShoppingCart size={20} />
+          <button type="button" className="btn-cart" onClick={onOpenCart} aria-label="Giỏ hàng">
+            <ShoppingCart size={18} />
             <span className="cart-badge">{cartCount}</span>
           </button>
         </nav>

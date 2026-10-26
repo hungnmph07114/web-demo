@@ -82,6 +82,47 @@ class AuthService {
     }
     return res.rows[0];
   }
+
+  async updateProfile(userId, { full_name, phone }) {
+    if (!full_name || !full_name.trim()) {
+      throw { status: 400, message: 'Họ và tên không được để trống' };
+    }
+    const res = await pool.query(`
+      UPDATE users
+      SET full_name = $1, phone = $2
+      WHERE id = $3
+      RETURNING id, email, full_name, phone, role, created_at;
+    `, [full_name.trim(), phone ? phone.trim() : null, userId]);
+
+    if (res.rows.length === 0) {
+      throw { status: 404, message: 'Không tìm thấy tài khoản' };
+    }
+    return res.rows[0];
+  }
+
+  async changePassword(userId, { currentPassword, newPassword }) {
+    if (!currentPassword || !newPassword) {
+      throw { status: 400, message: 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới' };
+    }
+    if (String(newPassword).length < 6) {
+      throw { status: 400, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
+    }
+
+    const res = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    if (res.rows.length === 0) {
+      throw { status: 404, message: 'Không tìm thấy tài khoản người dùng' };
+    }
+
+    const user = res.rows[0];
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      throw { status: 401, message: 'Mật khẩu hiện tại không chính xác' };
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+    return true;
+  }
 }
 
 module.exports = new AuthService();

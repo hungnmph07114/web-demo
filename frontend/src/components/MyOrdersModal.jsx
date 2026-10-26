@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi, formatMoney } from '../services/api';
-import { X, Package, Clock, QrCode, Truck, CheckCircle, ChevronRight, ShoppingBag, AlertCircle } from 'lucide-react';
+import { X, Package, Clock, QrCode, Truck, CheckCircle, ChevronRight, ShoppingBag, AlertCircle, XCircle } from 'lucide-react';
 
-export default function MyOrdersModal({ isOpen, onClose, token, onToast, onOpenTracking }) {
+export default function MyOrdersModal({ isOpen, onClose, token, onToast, onOpenTracking, onOrderUpdated }) {
   if (!isOpen) return null;
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmCancelId, setConfirmCancelId] = useState(null);
+  const [isCancelingId, setIsCancelingId] = useState(null);
 
   const loadMyOrders = async () => {
     setIsLoading(true);
@@ -24,6 +26,30 @@ export default function MyOrdersModal({ isOpen, onClose, token, onToast, onOpenT
   useEffect(() => {
     loadMyOrders();
   }, [token]);
+
+  const handleCancelOrder = async (orderId) => {
+    setIsCancelingId(orderId);
+    try {
+      const res = await fetchApi(
+        `/api/orders/${orderId}/cancel`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ reason: 'Khách hàng chủ động hủy đơn trên hệ thống' })
+        },
+        token
+      );
+      if (res.success) {
+        onToast(res.message || 'Đã hủy đơn hàng và hoàn lại tồn kho thành công');
+        setConfirmCancelId(null);
+        await loadMyOrders();
+        if (onOrderUpdated) onOrderUpdated();
+      }
+    } catch (err) {
+      onToast(err.message, 'error');
+    } finally {
+      setIsCancelingId(null);
+    }
+  };
 
   const filteredOrders = orders.filter((o) => {
     if (filter === 'all') return true;
@@ -212,7 +238,52 @@ export default function MyOrdersModal({ isOpen, onClose, token, onToast, onOpenT
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {order.fulfillment_status === 'processing' && order.payment_status !== 'captured' && (
+                        confirmCancelId === order.id ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={isCancelingId === order.id}
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '0.75rem',
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                borderColor: 'rgba(239, 68, 68, 0.5)',
+                                color: '#F87171'
+                              }}
+                              onClick={() => handleCancelOrder(order.id)}
+                            >
+                              <span>{isCancelingId === order.id ? 'Đang hủy...' : 'Xác nhận hủy đơn'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                              onClick={() => setConfirmCancelId(null)}
+                            >
+                              <span>Không</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '0.75rem',
+                              borderColor: 'rgba(239, 68, 68, 0.35)',
+                              color: '#F87171'
+                            }}
+                            onClick={() => setConfirmCancelId(order.id)}
+                          >
+                            <XCircle size={13} />
+                            <span>Hủy đơn & Hoàn kho</span>
+                          </button>
+                        )
+                      )}
+
                       <button
                         className="btn btn-secondary"
                         style={{ padding: '4px 10px', fontSize: '0.75rem' }}

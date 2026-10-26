@@ -51,7 +51,7 @@ class OrderController {
   async getDetails(req, res, next) {
     try {
       const { idOrDisplayId } = req.params;
-      const data = await orderService.getOrderDetails(idOrDisplayId);
+      const data = await orderService.getOrderDetails(idOrDisplayId, req.user);
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -82,6 +82,38 @@ class OrderController {
         success: true,
         message: 'Cập nhật trạng thái giao vận thành công',
         data: order
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async cancelMyOrder(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body || {};
+      const order = await orderService.cancelMyOrder(id, req.user, reason);
+      res.json({
+        success: true,
+        message: `Đã hủy đơn hàng #${order.display_id} và hoàn lại tồn kho`,
+        data: order
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async expireStaleOrders(req, res, next) {
+    try {
+      const { timeoutMinutes = 30 } = req.body || {};
+      const result = await orderService.expireStaleVietQROrders(timeoutMinutes);
+      res.json({
+        success: true,
+        message:
+          result.expiredCount > 0
+            ? `Đã thu hồi ${result.expiredCount} đơn chờ VietQR quá hạn (${result.expiredDisplayIds.join(', ')})`
+            : 'Không có đơn hàng chờ VietQR nào quá hạn thanh toán',
+        data: result
       });
     } catch (err) {
       next(err);

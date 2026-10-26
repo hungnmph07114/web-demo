@@ -1,150 +1,280 @@
 # CẨM NANG HƯỚNG DẪN TRIỂN KHAI ỨNG DỤNG LÊN RENDER.COM TỪ A - Z
 
-Tài liệu này được biên soạn dành riêng cho dự án **TechPulse Modular E-Commerce Engine** để lưu trữ trong thư mục làm việc, làm tài liệu tham khảo chi tiết khi vận hành, bảo trì và triển khai ứng dụng web lên Internet với **Render.com**.
+Tài liệu này được biên soạn dành riêng cho bạn để lưu trữ trong thư mục làm việc, làm tài liệu tham khảo chi tiết khi bắt tay vào xây dựng và đưa ứng dụng web lên Internet miễn phí với **Render.com**.
 
 > [!IMPORTANT]
-> ### 📌 HỒ SƠ DỊCH VỤ & THÔNG SỐ ĐANG HOẠT ĐỘNG (LIVE)
+> ### 📌 HỒ SƠ TÀI KHOẢN & THÔNG SỐ CỦA BẠN (LƯU TRỮ ĐỂ TRA CỨU)
 > | Dịch vụ | Mục | Thông tin chi tiết |
 > | :--- | :--- | :--- |
-> | **Render.com** (Web Service) | Service ID | `srv-dbe83css728c73bbh7g0` (Slug: `web-demo-app`) |
-> | | Email tài khoản | `itisloves2@gmail.com` (Workspace: *My Workspace*) |
-> | | Trang quản trị Render | [dashboard.render.com/web/srv-dbe83css728c73bbh7g0](https://dashboard.render.com/web/srv-dbe83css728c73bbh7g0) |
+> | **Render.com** (Server Web) | Email tài khoản | `itisloves2@gmail.com` (Workspace: *My Workspace*) |
+> | | Trang quản trị | [dashboard.render.com](https://dashboard.render.com) |
 > | | API Key | `rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE` |
-> | | **Trang Web Trực Tuyến 1** | **[https://shopchychy.foo.ng](https://shopchychy.foo.ng)** (Tên miền riêng chính thức) |
-> | | **Trang Web Trực Tuyến 2** | **[https://web-demo-app.onrender.com](https://web-demo-app.onrender.com)** (Render Subdomain) |
-> | | **Healthcheck URL** | `https://shopchychy.foo.ng/api/health` |
-> | | Kho lưu trữ GitHub | [https://github.com/hungnmph07114/web-demo](https://github.com/hungnmph07114/web-demo) (Branch: `main`) |
+> | | **Trang Web Trực Tuyến (Live)** | **[https://shopchychy.foo.ng](https://shopchychy.foo.ng)** (Tên miền riêng)<br>*(Hoặc: [https://web-demo-app.onrender.com](https://web-demo-app.onrender.com))* |
+> | | Kho lưu trữ GitHub | [https://github.com/hungnmph07114/web-demo](https://github.com/hungnmph07114/web-demo) |
 > | **Supabase** (PostgreSQL) | Trang quản trị | [supabase.com/dashboard/project/oecgyiaetefmxkrndcvk](https://supabase.com/dashboard/project/oecgyiaetefmxkrndcvk) |
 > | | Mật khẩu Database | `manhhung0423` |
 > | | **Chuỗi kết nối (DATABASE_URL)** | `postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres` |
-> | **Tài khoản mặc định** | Admin Quản trị | `admin@techpulse.vn` / `admin123` |
-> | | Khách hàng Demo | `user@techpulse.vn` / `user123` |
+> | | **API Keys (Supabase SDK)** | Trang lấy key: [API Keys Settings](https://supabase.com/dashboard/project/oecgyiaetefmxkrndcvk/settings/api-keys)<br>- `Publishable key`: Dùng cho Frontend/Client<br>- `Secret key`: Quyền Admin, chỉ dùng cho Backend trên Render |
+> | **Thư mục lưu trữ tài liệu** | Vị trí trên máy | `C:\Users\84123\OneDrive\Desktop\hoctap\HUONG_DAN_TRIEN_KHAI_RENDER.md` (Đã đồng bộ OneDrive) |
 
 ---
 
 ## MỤC LỤC
-1. [Kiến trúc triển khai TechPulse trên Render](#1-kien-truc-trien-khai-techpulse-tren-render)
-2. [Các biến môi trường (Environment Variables) bắt buộc trên Render](#2-cac-bien-moi-truong-environment-variables-bat-buoc-tren-render)
-3. [Quy trình Triển khai Tự động (Auto Deploy via GitHub)](#3-quy-trinh-trien-khai-tu-dong-auto-deploy-via-github)
-4. [Tự động hoá bằng Render API & Scripts cURL](#4-tu-dong-hoa-bang-render-api--scripts-curl)
-5. [Giải pháp giữ Server 24/7 không bị ngủ đông (Keep-Alive)](#5-giai-phap-giu-server-247-khong-bi-ngu-dong-keep-alive)
-6. [Xử lý sự cố & Kiểm tra Logs trên Render](#6-xu-ly-su-co--kiem-tra-logs-tren-render)
+1. [Hiểu về Render & Đặc điểm gói Miễn Phí (Free Tier)](#1-hieu-ve-render--dac-diem-goi-mien-phi-free-tier)
+2. [Các quy tắc "sống còn" khi viết code để deploy lên Render](#2-cac-quy-tac-song-con-khi-viet-code-de-deploy-len-render)
+3. [Cấu hình mẫu cho từng ngôn ngữ & framework phổ biến](#3-cau-hinh-mau-cho-tung-ngon-ngu--framework-pho-bien)
+   - [Node.js (Express, NestJS)](#31-nodejs-express-nestjs)
+   - [Python (FastAPI, Flask, Django)](#32-python-fastapi-flask-django)
+   - [Frontend tĩnh (React, Vue, Vite, HTML/JS)](#33-frontend-tinh-react-vue-vite-htmljs)
+   - [Đa nền tảng qua Docker (Java, PHP, Go, .NET...)](#34-da-nen-tang-qua-docker-java-php-go-net)
+4. [Hướng dẫn triển khai chi tiết qua Dashboard (Cách trực quan)](#4-huong-dan-trien-khai-chi-tiet-qua-dashboard-cach-truc-quan)
+5. [Tự động hoá bằng Blueprint (`render.yaml`)](#5-tu-dong-hoa-bang-blueprint-renderyaml)
+6. [Quản lý và triển khai qua Render API (Sử dụng API Key)](#6-quan-ly-va-trien-khai-qua-render-api-su-dung-api-key)
+7. [Các lỗi thường gặp và cách khắc phục](#7-cac-loi-thuong-gap-va-cach-khac-phuc)
+8. [Mẹo giữ Server không bị ngủ đông (Keep-Alive)](#8-meo-giu-server-khong-bi-ngu-dong-keep-alive)
 
 ---
 
-## 1. Kiến trúc triển khai TechPulse trên Render
+## 1. Hiểu về Render & Đặc điểm gói Miễn Phí (Free Tier)
 
-Hệ thống được đóng gói theo cơ chế **Unified Container Hosting** (Máy chủ thống nhất):
-- **Backend API:** Node.js Express phục vụ toàn bộ REST API tại `/api/*`.
-- **Frontend SPA:** Single Page Application (React + Vite) được biên dịch thành các tài nguyên tĩnh trong thư mục `frontend/dist/`. Express tự động điều hướng và phục vụ `index.html` cho tất cả các route người dùng (client-side routing).
-- **Cơ sở dữ liệu:** Supabase PostgreSQL (Managed Cloud Database) kết nối an toàn qua giao thức Connection Pooling (cổng 6543) hỗ trợ SSL tự động.
+Render cung cấp các dịch vụ miễn phí rất mạnh mẽ cho lập trình viên cá nhân:
 
----
-
-## 2. Các biến môi trường (Environment Variables) bắt buộc trên Render
-
-Truy cập **Render Dashboard > shopchychy > Environment** và đảm bảo các biến sau đã được thiết lập:
-
-| Tên biến (Key) | Giá trị mẫu / Ý nghĩa | Bắt buộc |
+| Loại dịch vụ | Gói Free hỗ trợ | Lưu ý quan trọng |
 | :--- | :--- | :--- |
-| `NODE_ENV` | `production` | Có |
-| `PORT` | *(Render tự sinh, server đọc qua `process.env.PORT \|\| 3000`)* | Tự động |
-| `DATABASE_URL` | `postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres` | Có |
-| `JWT_SECRET` | Chuỗi bí mật ký Token (VD: `techpulse_secret_jwt_super_key_2026`) | Có |
-| `VIETQR_BANK_ID` | `MB` (Ngân hàng Quân Đội) | Tùy chọn |
-| `VIETQR_ACCOUNT_NO` | `0987654321` | Tùy chọn |
-| `VIETQR_ACCOUNT_NAME` | `NGUYEN MANH HUNG` | Tùy chọn |
-| `SMTP_HOST` | Host SMTP gửi mail (để trống hệ thống tự dùng Ethereal Sandbox) | Tùy chọn |
-| `SMTP_USER` | Email hoặc user SMTP | Tùy chọn |
-| `SMTP_PASS` | Mật khẩu ứng dụng SMTP | Tùy chọn |
+| **Web Service (Backend)** | 512 MB RAM, 0.1 CPU, 750 giờ/tháng | **Tự động ngủ đông (Spin down)** sau 15 phút không có lượt truy cập. Khi có request mới, mất khoảng 30–50 giây để khởi động lại. |
+| **Static Site (Frontend)** | Băng thông 100 GB/tháng, CDN toàn cầu | **Hoạt động 24/7, không bao giờ ngủ đông**, tốc độ tải trang cực nhanh. |
+| **PostgreSQL Database** | Miễn phí trọn đời qua **Supabase** (500 MB) | Render miễn phí có hạn, nên **kết hợp dùng Supabase (PostgreSQL miễn phí trọn đời)**. Kết nối cực kỳ đơn giản chỉ qua một biến môi trường `DATABASE_URL`. |
+| **Redis** | Miễn phí 25 MB RAM | Dùng làm bộ nhớ đệm cache hoặc session store. |
+
+> [!TIP]
+> **Database PostgreSQL của bạn đã sẵn sàng sử dụng:**
+> * **Project URL:** `https://oecgyiaetefmxkrndcvk.supabase.co`
+> * **Khu vực (Region):** `South Asia (Mumbai - ap-south-1)`
+> * **Chuỗi kết nối hoàn chỉnh (dùng cho biến `DATABASE_URL` trên Render hoặc file `.env`):**
+>   ```text
+>   postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+>   ```
+>   *(Hoặc Direct connection: `postgresql://postgres:manhhung0423@db.oecgyiaetefmxkrndcvk.supabase.co:5432/postgres`)*
 
 ---
 
-## 3. Quy trình Triển khai Tự động (Auto Deploy via GitHub)
+## 2. Các quy tắc "sống còn" khi viết code để deploy lên Render
 
-Dịch vụ Render `shopchychy` đã được liên kết trực tiếp với nhánh `main` của repository GitHub:
-```
-https://github.com/hungnmph07114/web-demo.git
-```
+Để ứng dụng không bị lỗi ngay khi vừa deploy, bạn **bắt buộc** phải tuân thủ 3 nguyên tắc sau:
 
-Mỗi khi bạn thực hiện `git push origin main`:
-1. GitHub Webhook sẽ tự động thông báo tới Render.
-2. Render kéo mã nguồn mới nhất về máy chủ tại Singapore.
-3. Chạy lệnh **Build Command:** `npm install`.
-4. Khởi chạy **Start Command:** `npm start` (thực thi `node server.js`).
-5. Kiểm tra trạng thái và cập nhật bản dựng mới mà không làm gián đoạn người dùng (Zero-downtime rolling update).
+### 2.1. Không hardcode cổng (Port)
+Render sẽ cấp một cổng ngẫu nhiên thông qua biến môi trường `PORT`. Server của bạn phải lắng nghe cổng này:
+* **Node.js:** `const PORT = process.env.PORT || 3000;`
+* **Python:** Đọc qua `os.environ.get("PORT", 8000)`
+
+### 2.2. Luôn bind vào địa chỉ `0.0.0.0` (Không dùng `localhost` hoặc `127.0.0.1`)
+Nếu server backend chỉ lắng nghe trên `localhost` (`127.0.0.1`), Render sẽ không thể forward lượt truy cập từ bên ngoài internet vào trong container, dẫn đến lỗi timeout.
+* Luôn cho server bind vào IP: `0.0.0.0`.
+
+### 2.3. Không bao giờ đưa file `.env` lên GitHub
+Tạo file `.gitignore` và thêm `.env` vào:
+```gitignore
+node_modules/
+__pycache__/
+venv/
+.env
+```
+Mọi thông tin nhạy cảm (mật khẩu database, khóa bí mật JWT, API key) sẽ được điền vào mục **Environment Variables** trên trang quản trị của Render.
 
 ---
 
-## 4. Tự động hoá bằng Render API & Scripts cURL
+## 3. Cấu hình mẫu cho từng ngôn ngữ & framework phổ biến
 
-Bạn có thể quản lý, kiểm tra trạng thái và kích hoạt triển khai bằng API Key cá nhân:
-`rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE`
+Khi tạo một **Web Service**, Render sẽ hỏi 2 câu lệnh quan trọng:
+* **Build Command:** Lệnh để cài đặt thư viện và biên dịch mã nguồn.
+* **Start Command:** Lệnh để khởi chạy máy chủ.
 
-### 4.1. Kích hoạt Deploy lại thủ công (Trigger Manual Deploy)
-Chạy lệnh sau trên terminal (PowerShell hoặc Bash):
+### 3.1. Node.js (Express, NestJS)
+* **File `package.json`** cần khai báo mục `scripts`:
+  ```json
+  "scripts": {
+    "start": "node index.js"
+  }
+  ```
+* **Mẫu code lắng nghe cổng (`index.js`):**
+  ```javascript
+  const express = require('express');
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  app.get('/', (req, res) => res.send('Server đang chạy tốt trên Render!'));
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+  ```
+* **Render Settings:**
+  * **Build Command:** `npm install`
+  * **Start Command:** `npm start`
+
+---
+
+### 3.2. Python (FastAPI, Flask, Django)
+* Tạo file `requirements.txt` lưu danh sách thư viện (ví dụ: `fastapi`, `uvicorn`).
+* **Mẫu khởi chạy FastAPI (`main.py`):**
+  ```python
+  from fastapi import FastAPI
+  app = FastAPI()
+
+  @app.get("/")
+  def read_root():
+      return {"message": "Xin chào từ FastAPI trên Render!"}
+  ```
+* **Render Settings:**
+  * **Build Command:** `pip install -r requirements.txt`
+  * **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+  *(Nếu dùng Django/Gunicorn: `gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT`)*
+
+---
+
+### 3.3. Frontend tĩnh (React, Vue, Vite, HTML/JS)
+Với frontend, bạn chọn loại dịch vụ là **Static Site** (không tốn giờ chạy backend, miễn phí 100%):
+* **Build Command:** `npm run build`
+* **Publish Directory:** `dist` (đối với Vite/Vue/React hiện đại) hoặc `build` (đối với Create React App)
+* **Rewrite Rules (cho React Router/Vue Router):**
+  * Vào tab **Redirects/Rewrites**, thêm rule:
+    * **Source:** `/*`
+    * **Destination:** `/index.html`
+    * **Action:** `Rewrite` (để khi người dùng F5 không bị lỗi 404).
+
+---
+
+### 3.4. Đa nền tảng qua Docker (Java, PHP, Go, .NET...)
+Chỉ cần để một file `Dockerfile` ở thư mục gốc của dự án, Render sẽ tự nhận diện và build:
+```dockerfile
+# Ví dụ Dockerfile cho Go / Java / PHP / Python
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production
+COPY . .
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+---
+
+## 4. Hướng dẫn triển khai chi tiết qua Dashboard (Cách trực quan)
+
+### Bước 1: Đẩy mã nguồn lên GitHub
+1. Tạo một repository mới trên [github.com](https://github.com).
+2. Đẩy toàn bộ code dự án của bạn lên:
+   ```bash
+   git init
+   git add .
+   git commit -m "Khoi tao du an web"
+   git branch -M main
+   git remote add origin https://github.com/<tai-khoan>/<ten-repo>.git
+   git push -u origin main
+   ```
+
+### Bước 2: Tạo dịch vụ trên Render
+1. Đăng nhập vào [dashboard.render.com](https://dashboard.render.com).
+2. Nhấn nút **New +** ở góc trên cùng bên phải.
+3. Chọn loại dịch vụ:
+   * **Web Service:** Cho Backend API (Node, Python, Go...).
+   * **Static Site:** Cho Frontend (React, Vue, HTML/CSS).
+   * **PostgreSQL:** Nếu cần Database.
+4. Chọn **Build and deploy from a Git repository**, kết nối với tài khoản GitHub và chọn repo của bạn.
+
+### Bước 3: Điền cấu hình cơ bản
+* **Name:** Tên dự án (sẽ tạo ra link dạng `https://ten-du-an.onrender.com`).
+* **Region:** Chọn `Singapore` (để có tốc độ kết nối về Việt Nam nhanh nhất).
+* **Branch:** `main`
+* **Build Command:** Điền lệnh build tương ứng (xem lại mục 3).
+* **Start Command:** Điền lệnh chạy server.
+* **Instance Type:** Chọn **Free**.
+
+### Bước 4: Cấu hình biến môi trường
+1. Kéo xuống mục **Environment Variables**.
+2. Nhập các cặp `Key` - `Value` (Ví dụ: `NODE_ENV = production`, `DATABASE_URL = ...`).
+3. Bấm **Create Web Service**. Render sẽ bắt đầu build và hiển thị log trực tiếp. Khi hoàn thành, bạn sẽ nhận được đường dẫn URL công khai có HTTPS!
+
+---
+
+## 5. Tự động hoá bằng Blueprint (`render.yaml`)
+
+Thay vì phải bấm tay từng bước trên giao diện web, bạn có thể tạo một file tên là `render.yaml` ngay trong repo. Render sẽ tự động đọc file này và thiết lập tất cả các dịch vụ:
+
+```yaml
+services:
+  # 1. Dịch vụ Backend Web Service
+  - type: web
+    name: my-backend-api
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: my-postgres-db
+          property: connectionString
+
+databases:
+  # 2. Dịch vụ Database PostgreSQL
+  - name: my-postgres-db
+    plan: free
+    region: singapore
+    databaseName: myappdb
+    user: myappuser
+```
+
+Khi đẩy file này lên GitHub, trên Render bạn chỉ cần vào **Blueprints > New Blueprint Instance**, Render sẽ tự cấu hình mọi thứ đúng như file mô tả.
+
+---
+
+## 6. Quản lý và triển khai qua Render API (Sử dụng API Key)
+
+Bạn đã có sẵn API Key. Bạn có thể dùng API Key này để tự động hóa hoặc tích hợp vào các script CI/CD (GitHub Actions).
+
+### 6.1. Header xác thực bắt buộc
+Trong mọi request gửi tới Render API, bạn thêm Header:
+```http
+Authorization: Bearer <RENDER_API_KEY>
+Content-Type: application/json
+```
+
+### 6.2. Kích hoạt Deploy lại (Deploy Trigger) bằng lệnh cURL
+Khi cần kích hoạt deploy lại dịch vụ từ dòng lệnh:
 ```bash
-curl -X POST https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys \
-  -H "Authorization: Bearer rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE" \
+curl -X POST https://api.render.com/v1/services/<SERVICE_ID>/deploys \
+  -H "Authorization: Bearer <RENDER_API_KEY>" \
   -H "Accept: application/json"
 ```
 
-### 4.2. Kiểm tra tiến độ bản Deploy gần nhất
+### 6.3. Lấy danh sách dịch vụ đang chạy
 ```bash
-curl -s -H "Authorization: Bearer rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE" \
-  https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys?limit=1
-```
-
-### 4.3. Kiểm tra thông số dịch vụ (Service Details)
-```bash
-curl -s -H "Authorization: Bearer rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE" \
-  https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0
+curl -s -H "Authorization: Bearer <RENDER_API_KEY>" https://api.render.com/v1/services
 ```
 
 ---
 
-## 5. Giải pháp giữ Server 24/7 không bị ngủ đông (Keep-Alive)
+## 7. Các lỗi thường gặp và cách khắc phục
 
-Trên gói **Free Tier** của Render, Web Service sẽ tạm thời chuyển sang trạng thái ngủ đông (Sleep) nếu không có lượt truy cập nào trong vòng **15 phút**. Khi người dùng vào lại, server cần khoảng 30–50 giây để khởi động lại.
-
-### Cách cấu hình UptimeRobot (Hoàn toàn Miễn phí):
-1. Đăng ký tài khoản tại [uptimerobot.com](https://uptimerobot.com).
-2. Nhấn **Add New Monitor**:
-   - **Monitor Type:** `HTTP(s)`
-   - **Friendly Name:** `TechPulse Render Keep-Alive`
-   - **URL (or IP):** `https://shopchychy.foo.ng/api/health` *(hoặc `https://web-demo-app.onrender.com/api/health`)*
-   - **Monitoring Interval:** Chọn **5 minutes** (hoặc 10 minutes)
-3. Nhấn **Create Monitor**.
-
-> [!TIP]
-> Endpoint `GET /api/health` trả về kết quả JSON siêu nhẹ:
-> ```json
-> {
->   "status": "ok",
->   "uptime": 120,
->   "timestamp": "2026-10-26T08:04:34.960Z",
->   "service": "TechPulse Modular E-Commerce Engine"
-> }
-> ```
-> Nhờ có ping tự động mỗi 5-10 phút, máy chủ Render sẽ luôn nhận định là có lưu lượng truy cập và **không bao giờ rơi vào trạng thái ngủ đông**.
+| Hiện tượng | Nguyên nhân | Cách khắc phục |
+| :--- | :--- | :--- |
+| **`Timed out waiting for port`** | Code backend đang lắng nghe trên cổng tĩnh (ví dụ cứng `3000`) hoặc bind vào `localhost`. | Đổi code thành đọc cổng từ `process.env.PORT` hoặc `$PORT` và bind vào IP `0.0.0.0`. |
+| **`Exited with status 1 / 127`** | Thiếu file phụ thuộc, sai Start Command hoặc gõ nhầm tên file entrypoint. | Kiểm tra kỹ tab **Logs** trên Render để xem dòng báo lỗi cụ thể của runtime. |
+| **Lỗi 404 khi F5 trang React/Vue** | Web SPA cần chuyển hướng tất cả URL về `index.html`. | Vào tab **Redirects/Rewrites** của Static Site, tạo rewrite `/* -> /index.html`. |
+| **Không kết nối được Database** | URL Database bị sai hoặc chưa cấp quyền SSL. | Render Database yêu cầu kết nối an toàn (SSL). Thêm tham số `?ssl=true` hoặc bật `rejectUnauthorized: false` trong cấu hình ORM/Driver. |
 
 ---
 
-## 6. Xử lý sự cố & Kiểm tra Logs trên Render
+## 8. Mẹo giữ Server không bị ngủ đông (Keep-Alive)
 
-### 6.1. Xem nhật ký hoạt động thời gian thực (Live Logs)
-- Truy cập mục **Logs** trong trang quản trị: [dashboard.render.com/web/srv-dbe83css728c73bbh7g0/logs](https://dashboard.render.com/web/srv-dbe83css728c73bbh7g0/logs)
-- Khi khởi động thành công, log sẽ hiển thị:
-  ```text
-  ⚡ Đang khởi động hệ thống TechPulse E-Commerce Engine...
-  ✅ Ket noi Supabase PostgreSQL thanh cong!
-  🚀 TechPulse E-Commerce Server đang chạy tại: http://localhost:3000
-  ```
+Vì gói miễn phí sẽ tự động ngủ đông sau 15 phút không có ai vào, bạn có thể áp dụng mẹo sau để server luôn thức sẵn sàng phục vụ:
 
-### 6.2. Các lỗi thường gặp & Cách khắc phục:
-1. **Lỗi `Port scan timeout`:**
-   - Đảm bảo `server.js` lắng nghe trên `0.0.0.0` và cổng `process.env.PORT || 3000`.
-2. **Lỗi `getaddrinfo ENOTFOUND` hoặc `Connection terminated unexpectedly`:**
-   - Kiểm tra chuỗi `DATABASE_URL` trong mục Environment. Đảm bảo sử dụng cổng Pooler `6543` của Supabase.
-3. **Lỗi `404 Not Found` khi truy cập đường dẫn con:**
-   - Đã được xử lý triệt để trong `src/app.js` bằng wildcard fallback `app.get('*', ... res.sendFile('index.html'))`.
+1. Đăng ký một tài khoản miễn phí tại **[UptimeRobot](https://uptimerobot.com/)** hoặc **[Cron-job.org](https://cron-job.org/)**.
+2. Tạo một Monitor mới dạng **HTTP(s)**:
+   * **URL:** `https://ten-ung-dung-cua-ban.onrender.com/health` (hoặc link trang chủ của bạn).
+   * **Tần suất (Interval):** Thiết lập gửi request mỗi **10 - 14 phút/lần**.
+3. *Kết quả:* Nhờ có request định kỳ từ UptimeRobot, Render sẽ nhận định rằng ứng dụng đang có người dùng và không kích hoạt chế độ ngủ đông!

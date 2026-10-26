@@ -2,10 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { formatMoney, copyText, fetchApi } from '../services/api';
 import { X, CheckCircle, Smartphone, Banknote, Copy, Clock, ArrowRight, Zap, Check } from 'lucide-react';
 
+const VN_PROVINCES = [
+  'TP. Hồ Chí Minh',
+  'Hà Nội',
+  'Đà Nẵng',
+  'Hải Phòng',
+  'Cần Thơ',
+  'Bình Dương',
+  'Đồng Nai',
+  'Khánh Hòa',
+  'Quảng Ninh',
+  'Thừa Thiên Huế',
+  'Nghệ An',
+  'Thanh Hóa',
+  'Bà Rịa - Vũng Tàu',
+  'Lâm Đồng',
+  'Bắc Ninh',
+  'Tỉnh / Thành khác'
+];
+
 export default function CheckoutModal({
   isOpen,
   onClose,
   cart,
+  storeSettings,
   appliedVoucher,
   user,
   onSubmitOrder,
@@ -17,6 +37,8 @@ export default function CheckoutModal({
   const [step, setStep] = useState('form'); // 'form' | 'vietqr'
   const [createdOrder, setCreatedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('vietqr');
+  const [province, setProvince] = useState('TP. Hồ Chí Minh');
+  const [districtWard, setDistrictWard] = useState('');
   const [formData, setFormData] = useState({
     customer_name: user?.full_name || '',
     customer_email: user?.email || '',
@@ -28,6 +50,19 @@ export default function CheckoutModal({
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [isAutoCaptured, setIsAutoCaptured] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+
+  const freeThreshold =
+    storeSettings?.free_shipping_threshold !== undefined && storeSettings?.free_shipping_threshold !== null
+      ? parseFloat(storeSettings.free_shipping_threshold)
+      : 1000000;
+  const baseShippingFee =
+    storeSettings?.base_shipping_fee !== undefined && storeSettings?.base_shipping_fee !== null
+      ? parseFloat(storeSettings.base_shipping_fee)
+      : 30000;
+
+  const bankName = storeSettings?.bank_name || `${storeSettings?.bank_id || 'MB'} Bank`;
+  const bankAccountNo = storeSettings?.bank_account_no || '0345678910';
+  const bankAccountName = storeSettings?.bank_account_name || 'ATELIER RETAIL CORP';
 
   // Calculations
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -43,7 +78,7 @@ export default function CheckoutModal({
     }
     discount = Math.min(discount, subtotal);
   }
-  const shipping = subtotal >= 5000000 || subtotal === 0 ? 0 : 30000;
+  const shipping = subtotal >= freeThreshold || subtotal === 0 ? 0 : baseShippingFee;
   const total = Math.max(0, subtotal - discount + shipping);
 
   // VietQR Countdown Timer
@@ -86,8 +121,17 @@ export default function CheckoutModal({
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const fullAddress = [
+        formData.shipping_address.trim(),
+        districtWard.trim(),
+        province
+      ]
+        .filter(Boolean)
+        .join(', ');
+
       const payload = {
         ...formData,
+        shipping_address: fullAddress,
         payment_method: paymentMethod,
         promotion_code: appliedVoucher ? appliedVoucher.code : null,
         items: cart.map((i) => ({ variantId: i.variantId, quantity: i.quantity }))
@@ -118,7 +162,7 @@ export default function CheckoutModal({
         body: JSON.stringify({
           display_id: createdOrder.display_id,
           amount: createdOrder.total_amount,
-          bank_name: 'MB Bank (Simulator 24/7)'
+          bank_name: `${bankName} (Simulator 24/7)`
         })
       });
       if (res.success) {
@@ -151,9 +195,9 @@ export default function CheckoutModal({
           /* Step 1: Shipping & Payment Form */
           <div>
             <div className="modal-header-compact" style={{ marginBottom: '18px' }}>
-              <h2 className="modal-title" style={{ fontSize: '1.3rem' }}>Thông Tin Thanh Toán & Nhận Hàng</h2>
+              <h2 className="modal-title" style={{ fontSize: '1.3rem' }}>Thông Tin Thanh Toán &amp; Nhận Hàng</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Tạo đơn hàng nhanh chóng, hỗ trợ cổng VietQR chuẩn NAPAS 247
+                Tạo đơn hàng nhanh chóng, hỗ trợ cổng VietQR chuẩn NAPAS 247 ({bankName})
               </p>
             </div>
 
@@ -168,7 +212,7 @@ export default function CheckoutModal({
                     placeholder="Nguyễn Văn A"
                     value={formData.customer_name}
                     onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.9rem' }}
+                    className="form-input"
                     required
                   />
                 </div>
@@ -181,7 +225,7 @@ export default function CheckoutModal({
                     placeholder="0912345678"
                     value={formData.customer_phone}
                     onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.9rem' }}
+                    className="form-input"
                     required
                   />
                 </div>
@@ -189,28 +233,61 @@ export default function CheckoutModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                  Địa chỉ email (nhận hóa đơn) *
+                  Địa chỉ email (nhận hóa đơn điện tử) *
                 </label>
                 <input
                   type="email"
                   placeholder="nguyenvana@gmail.com"
                   value={formData.customer_email}
                   onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.9rem' }}
+                  className="form-input"
                   required
                 />
               </div>
 
+              {/* Structured Vietnam Province & District/Ward */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    Tỉnh / Thành phố *
+                  </label>
+                  <select
+                    className="form-select"
+                    value={province}
+                    onChange={(e) => setProvince(e.target.value)}
+                  >
+                    {VN_PROVINCES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    Quận / Huyện / Phường / Xã *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: Phường Bến Nghé, Quận 1"
+                    value={districtWard}
+                    onChange={(e) => setDistrictWard(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                  Địa chỉ giao nhận hàng *
+                  Số nhà, tên đường, tòa nhà *
                 </label>
                 <input
                   type="text"
-                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh thành..."
+                  placeholder="VD: Số 88 Đồng Khởi, Tòa nhà Atelier Tower"
                   value={formData.shipping_address}
                   onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.9rem' }}
+                  className="form-input"
                   required
                 />
               </div>
@@ -224,13 +301,13 @@ export default function CheckoutModal({
                   placeholder="Giao giờ hành chính, gọi trước khi giao..."
                   value={formData.note}
                   onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: '#fff', fontSize: '0.9rem' }}
+                  className="form-input"
                 />
               </div>
 
               {/* Payment Methods */}
               <div style={{ marginTop: '6px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
                   Phương thức thanh toán:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -259,7 +336,12 @@ export default function CheckoutModal({
               </div>
 
               <div className="checkout-total-banner" style={{ marginTop: '8px' }}>
-                <span>Số tiền thanh toán:</span>
+                <div>
+                  <span>Tổng thanh toán:</span>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {shipping === 0 ? 'Đã miễn phí vận chuyển' : `Đã gồm phí vận chuyển ${formatMoney(shipping)}`}
+                  </div>
+                </div>
                 <strong>{formatMoney(total)}</strong>
               </div>
 
@@ -329,7 +411,7 @@ export default function CheckoutModal({
                   <div className="qr-frame">
                     <img src={createdOrder?.vietqr_image} alt="VietQR NAPAS 247" className="qr-image" />
                     <div className="qr-timer">
-                      <span>⏱️ Thời gian giữ hàng & thanh toán: </span>
+                      <span>⏱️ Thời gian giữ hàng &amp; thanh toán: </span>
                       <strong>{formatTimer()}</strong>
                     </div>
                   </div>
@@ -337,17 +419,17 @@ export default function CheckoutModal({
                   <div className="vietqr-details-table">
                     <div className="detail-row">
                       <span className="detail-label">Ngân hàng thụ hưởng:</span>
-                      <span className="detail-val">MB Bank (Quân Đội)</span>
+                      <span className="detail-val">{bankName}</span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Chủ tài khoản:</span>
-                      <span className="detail-val">NGUYEN MANH HUNG</span>
+                      <span className="detail-val">{bankAccountName}</span>
                     </div>
                     <div className="detail-row highlight">
                       <span className="detail-label">Số tài khoản:</span>
                       <div className="copy-cell">
-                        <span className="detail-val">0987654321</span>
-                        <button className="btn-copy" onClick={() => copyText('0987654321', 'Số tài khoản', onToast)}>
+                        <span className="detail-val">{bankAccountNo}</span>
+                        <button className="btn-copy" onClick={() => copyText(bankAccountNo, 'Số tài khoản', onToast)}>
                           Sao chép
                         </button>
                       </div>

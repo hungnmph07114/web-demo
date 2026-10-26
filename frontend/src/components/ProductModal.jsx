@@ -5,6 +5,7 @@ import ProductReviews from './ProductReviews';
 
 export default function ProductModal({
   product,
+  storeSettings,
   onClose,
   onAddToCart,
   onToast,
@@ -17,9 +18,13 @@ export default function ProductModal({
 
   const [selectedOptions, setSelectedOptions] = useState({});
   const [quantity, setQuantity] = useState(1);
+  const [imgError, setImgError] = useState(false);
+
+  const unitLabel = storeSettings?.unit_label || 'sản phẩm';
 
   // Initialize default options from the first variant
   useEffect(() => {
+    setImgError(false);
     if (product.variants && product.variants.length > 0) {
       const defaultVariant = product.variants[0];
       const optJson = defaultVariant.options_json || {};
@@ -80,17 +85,18 @@ export default function ProductModal({
 
   const handleAdd = () => {
     if (!activeVariant) {
-      onToast('Vui lòng chọn cấu hình sản phẩm hợp lệ', 'error');
+      onToast('Vui lòng chọn phiên bản sản phẩm hợp lệ', 'error');
       return;
     }
     if (activeVariant.inventory_quantity < quantity) {
-      onToast(`Kho chỉ còn ${activeVariant.inventory_quantity} sản phẩm`, 'error');
+      onToast(`Kho chỉ còn ${activeVariant.inventory_quantity} ${unitLabel}`, 'error');
       return;
     }
     onAddToCart(product, activeVariant, quantity);
   };
 
-  const displayImage = activeVariant?.thumbnail || product.thumbnail;
+  const rawImage = activeVariant?.thumbnail || product.thumbnail;
+  const displayImage = !imgError && rawImage ? rawImage : '/assets/editorial/hero-flagship.svg';
 
   return (
     <div className="modal-overlay active" onClick={(e) => e.target.classList.contains('modal-overlay') && onClose()}>
@@ -102,43 +108,52 @@ export default function ProductModal({
         <div className="product-modal-grid">
           {/* Gallery */}
           <div className="modal-gallery">
-            <img src={displayImage} alt={product.title} className="modal-main-img" />
+            <img
+              src={displayImage}
+              alt={product.title}
+              className="modal-main-img"
+              referrerPolicy="no-referrer"
+              onError={() => setImgError(true)}
+            />
           </div>
 
           {/* Details */}
           <div className="modal-details">
-            <span className="badge">
-              {product.category_icon || '📱'} {product.category_name || 'Công nghệ'}
-            </span>
-            <h2 className="modal-title">{product.title}</h2>
+            <div className="product-meta-line" style={{ marginBottom: '4px' }}>
+              <span>{product.category_icon || '🛍️'} {product.category_name || 'Bộ sưu tập'}</span>
+              <span aria-hidden="true">·</span>
+              <span>Mã SKU: {activeVariant ? activeVariant.sku : '---'}</span>
+            </div>
+
+            <h2 className="modal-title" style={{ fontFamily: 'var(--font-display)' }}>{product.title}</h2>
             <p className="modal-subtitle">{product.subtitle || product.title}</p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0 16px 0' }}>
-              <div style={{ display: 'flex', gap: '3px', color: '#FBBF24' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 16px 0' }}>
+              <div style={{ display: 'flex', gap: '3px', color: 'var(--accent-amber)' }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    size={16}
-                    fill={star <= Math.round(Number(product.average_rating || 5)) ? '#FBBF24' : 'transparent'}
-                    color="#FBBF24"
+                    size={15}
+                    fill={star <= Math.round(Number(product.average_rating || 5)) ? 'currentColor' : 'transparent'}
+                    color="currentColor"
                   />
                 ))}
               </div>
-              <span style={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem' }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}>
                 {product.average_rating || '5.0'}
               </span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                • ({product.reviews_count || 0} lượt đánh giá)
+                · {product.reviews_count || 0} lượt đánh giá
               </span>
             </div>
 
             {/* Price Box */}
-            <div className="modal-price-box">
-              <span className="modal-current-price">
+            <div className="modal-price-box" style={{ paddingBottom: '14px', borderBottom: '1px solid var(--border-glass)' }}>
+              <span className="modal-current-price" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {activeVariant ? formatMoney(activeVariant.price) : '0đ'}
               </span>
               {activeVariant?.original_price && parseFloat(activeVariant.original_price) > parseFloat(activeVariant.price) && (
-                <span className="modal-original-price">
+                <span className="modal-original-price" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {formatMoney(activeVariant.original_price)}
                 </span>
               )}
@@ -151,30 +166,29 @@ export default function ProductModal({
                       ? 'low-stock'
                       : 'in-stock'
                   }`}
-                  style={activeVariant.inventory_quantity <= 0 ? { background: 'rgba(239, 68, 68, 0.2)', color: '#F87171' } : {}}
+                  style={
+                    activeVariant.inventory_quantity <= 0
+                      ? { background: 'rgba(190, 18, 60, 0.15)', color: 'var(--accent-rose)' }
+                      : {}
+                  }
                 >
                   {activeVariant.inventory_quantity <= 0
-                    ? 'Hết hàng'
+                    ? 'Tạm hết hàng'
                     : activeVariant.inventory_quantity <= 5
-                    ? `Chỉ còn ${activeVariant.inventory_quantity} máy`
-                    : `Còn hàng (${activeVariant.inventory_quantity} máy)`}
+                    ? `Chỉ còn ${activeVariant.inventory_quantity} ${unitLabel}`
+                    : `Còn hàng (${activeVariant.inventory_quantity} ${unitLabel})`}
                 </span>
               )}
             </div>
 
-            {/* SKU */}
-            <div className="variant-sku-bar">
-              <span>Mã SKU: <strong>{activeVariant ? activeVariant.sku : '---'}</strong></span>
-            </div>
-
             {/* Dynamic Options */}
-            <div className="options-container">
+            <div className="options-container" style={{ marginTop: '16px' }}>
               {Object.entries(optionsMap).map(([optTitle, values]) => {
                 const currentSelected = selectedOptions[optTitle] || values[0];
                 return (
                   <div key={optTitle} className="option-group">
                     <div className="option-group-title">
-                      Chọn {optTitle}: <strong style={{ color: '#fff' }}>{currentSelected}</strong>
+                      {optTitle}: <strong style={{ color: 'var(--text-main)' }}>{currentSelected}</strong>
                     </div>
                     <div className="option-values-row">
                       {values.map((val) => (
@@ -195,7 +209,7 @@ export default function ProductModal({
 
             {/* Description */}
             <div className="modal-desc-box">
-              <h4>Mô tả sản phẩm</h4>
+              <h4>Thông tin &amp; Chất liệu sản phẩm</h4>
               <p>{product.description || 'Chưa có mô tả chi tiết.'}</p>
             </div>
 
@@ -203,6 +217,7 @@ export default function ProductModal({
             <div className="modal-actions-bar">
               <div className="qty-selector">
                 <button
+                  type="button"
                   className="qty-btn"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 >
@@ -220,11 +235,12 @@ export default function ProductModal({
                   max={activeVariant?.inventory_quantity || 99}
                 />
                 <button
+                  type="button"
                   className="qty-btn"
                   onClick={() => {
                     const max = activeVariant ? activeVariant.inventory_quantity : 99;
                     if (quantity < max) setQuantity((q) => q + 1);
-                    else onToast(`Kho chỉ còn ${max} sản phẩm`, 'info');
+                    else onToast(`Kho chỉ còn ${max} ${unitLabel}`, 'info');
                   }}
                 >
                   <Plus size={14} />
@@ -232,6 +248,7 @@ export default function ProductModal({
               </div>
 
               <button
+                type="button"
                 className="btn btn-primary btn-add-cart"
                 onClick={handleAdd}
                 disabled={!activeVariant || activeVariant.inventory_quantity <= 0}
@@ -247,18 +264,19 @@ export default function ProductModal({
                 onClick={() => onToggleWishlist && onToggleWishlist(product.id)}
                 title={isWishlisted ? 'Đã lưu vào yêu thích (Bấm để bỏ)' : 'Lưu vào danh sách yêu thích'}
                 style={{
+                  height: '44px',
                   padding: '0 16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderColor: isWishlisted ? '#EF4444' : undefined,
-                  background: isWishlisted ? 'rgba(239, 68, 68, 0.15)' : undefined
+                  borderColor: isWishlisted ? '#BE123C' : undefined,
+                  background: isWishlisted ? 'rgba(190, 18, 60, 0.1)' : undefined
                 }}
               >
                 <Heart
                   size={18}
-                  fill={isWishlisted ? '#EF4444' : 'transparent'}
-                  color={isWishlisted ? '#EF4444' : '#fff'}
+                  fill={isWishlisted ? '#BE123C' : 'transparent'}
+                  color={isWishlisted ? '#BE123C' : 'var(--text-main)'}
                 />
               </button>
             </div>

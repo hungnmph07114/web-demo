@@ -1,28 +1,167 @@
 /**
  * Database Configuration & Connection Pool
- * PostgreSQL (Supabase) client with auto table initialization
+ * Supports PostgreSQL (Supabase / Cloud SQL) with automatic embedded PGlite fallback
  * Modular E-Commerce Schema inspired by MedusaJS
  */
 const { Pool } = require('pg');
+const path = require('path');
 require('dotenv').config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+let activeBackend = null; // 'pg' | 'pglite'
+let pgPool = null;
+let pgliteInstance = null;
+let pgliteMutex = Promise.resolve();
 
-pool.on('error', (err) => {
-  console.error('⚠️ Canh bao su co tren idle PostgreSQL client:', err.message);
-});
+function createExternalPgPool() {
+  if (process.env.SQL_HOST && process.env.SQL_USER && process.env.SQL_DB_NAME) {
+    return new Pool({
+      host: process.env.SQL_HOST,
+      user: process.env.SQL_USER,
+      password: process.env.SQL_PASSWORD,
+      database: process.env.SQL_DB_NAME,
+      max: 10,
+      connectionTimeoutMillis: 8000
+    });
+  }
+
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '') {
+    return new Pool({
+      connectionString: process.env.DATABASE_URL.trim(),
+      ssl: process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1')
+        ? false
+        : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000
+    });
+  }
+
+  return null;
+}
+
+async function getPGlite() {
+  if (pgliteInstance) return pgliteInstance;
+  const { PGlite } = await import('@electric-sql/pglite');
+  try {
+    const dataDir = path.join(__dirname, '..', '..', '.pglite-data');
+    pgliteInstance = new PGlite(dataDir);
+    await pgliteInstance.waitReady;
+  } catch (err) {
+    // Fallback to pure in-memory PGlite if disk directory cannot be initialized
+    pgliteInstance = new PGlite();
+    await pgliteInstance.waitReady;
+  }
+  return pgliteInstance;
+}
+
+function sanitizeParams(params) {
+  if (!Array.isArray(params)) return [];
+  return params.map((v) => (v === undefined ? null : v));
+}
+
+async function ensureBackend() {
+  if (activeBackend === 'pg' && pgPool) return;
+  if (activeBackend === 'pglite' && pgliteInstance) return;
+
+  const candidatePool = createExternalPgPool();
+  if (candidatePool) {
+    candidatePool.on('error', (err) => {
+      console.error('⚠️ Cảnh báo sự cố trên idle PostgreSQL client:', err.message);
+    });
+    try {
+      const testClient = await candidatePool.connect();
+      testClient.release();
+      pgPool = candidatePool;
+      activeBackend = 'pg';
+      console.log('✅ Kết nối PostgreSQL ngoại vi thành công!');
+      return;
+    } catch (err) {
+      console.warn('⚠️ Không thể kết nối PostgreSQL ngoại vi, chuyển sang Embedded PostgreSQL (PGlite):', err.message);
+      try {
+        await candidatePool.end();
+      } catch (_) {
+        // ignore
+      }
+    }
+  }
+
+  await getPGlite();
+  activeBackend = 'pglite';
+  console.log('✅ Đã khởi tạo Embedded PostgreSQL Engine (PGlite) tự động dự phòng!');
+}
+
+const pool = {
+  async query(text, params) {
+    await ensureBackend();
+    const cleanParams = sanitizeParams(params);
+    if (activeBackend === 'pg') {
+      return pgPool.query(text, cleanParams);
+    }
+
+    const db = await getPGlite();
+    // Serialize top-level queries with active transactions
+    let releaseLock;
+    const prevLock = pgliteMutex;
+    pgliteMutex = new Promise((resolve) => {
+      releaseLock = resolve;
+    });
+    await prevLock;
+    try {
+      const res = await db.query(text, cleanParams);
+      return { rows: res.rows || [], rowCount: res.affectedRows ?? (res.rows ? res.rows.length : 0) };
+    } finally {
+      releaseLock();
+    }
+  },
+
+  async connect() {
+    await ensureBackend();
+    if (activeBackend === 'pg') {
+      return pgPool.connect();
+    }
+
+    const db = await getPGlite();
+    let releaseLock;
+    const prevLock = pgliteMutex;
+    pgliteMutex = new Promise((resolve) => {
+      releaseLock = resolve;
+    });
+    await prevLock;
+
+    let released = false;
+    return {
+      async query(text, params) {
+        const cleanParams = sanitizeParams(params);
+        const res = await db.query(text, cleanParams);
+        return { rows: res.rows || [], rowCount: res.affectedRows ?? (res.rows ? res.rows.length : 0) };
+      },
+      release() {
+        if (!released) {
+          released = true;
+          releaseLock();
+        }
+      }
+    };
+  },
+
+  on(event, handler) {
+    if (pgPool) {
+      pgPool.on(event, handler);
+    }
+  },
+
+  async end() {
+    if (pgPool) {
+      await pgPool.end();
+    }
+    if (pgliteInstance && typeof pgliteInstance.close === 'function') {
+      await pgliteInstance.close();
+    }
+  }
+};
 
 async function initDatabase() {
   const client = await pool.connect();
   try {
-    console.log('✅ Ket noi Supabase PostgreSQL thanh cong!');
-
-    // 1. Bang Users (Phan quyen JWT)
+    // 1. Bảng Users (Phân quyền JWT)
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -35,7 +174,7 @@ async function initDatabase() {
       );
     `);
 
-    // 2. Bang Categories (Danh muc san pham cong nghe)
+    // 2. Bảng Categories (Danh mục sản phẩm công nghệ)
     await client.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
@@ -47,7 +186,7 @@ async function initDatabase() {
       );
     `);
 
-    // 3. Bang Products (San pham goc)
+    // 3. Bảng Products (Sản phẩm gốc)
     await client.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -62,7 +201,7 @@ async function initDatabase() {
       );
     `);
 
-    // 4. Bang Product Options (Thuoc tinh: Mau sac, Dung luong, ...)
+    // 4. Bảng Product Options (Thuộc tính: Màu sắc, Dung lượng, ...)
     await client.query(`
       CREATE TABLE IF NOT EXISTS product_options (
         id SERIAL PRIMARY KEY,
@@ -71,7 +210,7 @@ async function initDatabase() {
       );
     `);
 
-    // 5. Bang Product Variants (Bien the san pham kieu Medusa: SKU, Gia rieng, Ton kho rieng)
+    // 5. Bảng Product Variants (Biến thể sản phẩm kiểu Medusa: SKU, Giá riêng, Tồn kho riêng)
     await client.query(`
       CREATE TABLE IF NOT EXISTS product_variants (
         id SERIAL PRIMARY KEY,
@@ -88,13 +227,13 @@ async function initDatabase() {
       );
     `);
 
-    // 6. Bang Promotions (Ma giam gia & Quy tac khuyen mai)
+    // 6. Bảng Promotions (Mã giảm giá & Quy tắc khuyến mãi)
     await client.query(`
       CREATE TABLE IF NOT EXISTS promotions (
         id SERIAL PRIMARY KEY,
         code VARCHAR(50) UNIQUE NOT NULL,
         description TEXT,
-        type VARCHAR(20) DEFAULT 'percentage', -- 'percentage' hoac 'fixed'
+        type VARCHAR(20) DEFAULT 'percentage',
         value NUMERIC(12, 2) NOT NULL,
         min_order_value NUMERIC(15, 2) DEFAULT 0,
         max_discount NUMERIC(15, 2) DEFAULT 0,
@@ -105,7 +244,7 @@ async function initDatabase() {
       );
     `);
 
-    // 7. Bang Orders (Don hang voi 2 trang thai doc lap: PaymentStatus & FulfillmentStatus)
+    // 7. Bảng Orders (Đơn hàng với Dual State Machine + Giao vận + Đối soát VietQR)
     await client.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
@@ -120,18 +259,35 @@ async function initDatabase() {
         discount_total NUMERIC(15, 2) DEFAULT 0,
         shipping_fee NUMERIC(15, 2) DEFAULT 0,
         total_amount NUMERIC(15, 2) NOT NULL,
-        payment_method VARCHAR(50) DEFAULT 'vietqr', -- 'vietqr' | 'cod'
-        payment_status VARCHAR(50) DEFAULT 'awaiting_vietqr', -- 'awaiting_vietqr' | 'captured' | 'refunded'
-        fulfillment_status VARCHAR(50) DEFAULT 'processing', -- 'processing' | 'packing' | 'shipped' | 'delivered' | 'canceled'
+        payment_method VARCHAR(50) DEFAULT 'vietqr',
+        payment_status VARCHAR(50) DEFAULT 'awaiting_vietqr',
+        fulfillment_status VARCHAR(50) DEFAULT 'processing',
         promotion_code VARCHAR(50),
         vietqr_content VARCHAR(100),
         vietqr_image TEXT,
+        transaction_ref VARCHAR(100),
+        shipping_carrier VARCHAR(50) DEFAULT 'GHN',
+        tracking_code VARCHAR(100),
+        driver_name VARCHAR(150),
+        driver_phone VARCHAR(50),
+        estimated_delivery_date TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // 8. Bang Order Items (Chi tiet tung bien the trong don hang)
+    // Đảm bảo tương thích ngược cho database đã tạo từ phiên bản cũ
+    await client.query(`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS shipping_carrier VARCHAR(50) DEFAULT 'GHN',
+      ADD COLUMN IF NOT EXISTS tracking_code VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS driver_name VARCHAR(150),
+      ADD COLUMN IF NOT EXISTS driver_phone VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS estimated_delivery_date TIMESTAMP WITH TIME ZONE;
+    `);
+
+    // 8. Bảng Order Items (Chi tiết từng biến thể trong đơn hàng)
     await client.query(`
       CREATE TABLE IF NOT EXISTS order_items (
         id SERIAL PRIMARY KEY,
@@ -147,7 +303,7 @@ async function initDatabase() {
       );
     `);
 
-    // 9. Bang Order Logs (Lich su chuyen doi trang thai don hang)
+    // 9. Bảng Order Logs (Lịch sử chuyển đổi trạng thái đơn hàng)
     await client.query(`
       CREATE TABLE IF NOT EXISTS order_logs (
         id SERIAL PRIMARY KEY,
@@ -158,23 +314,34 @@ async function initDatabase() {
       );
     `);
 
-    // 10. Bang Webhook Logs (Lich su giao dich VietQR tu dong)
+    // 10. Bảng Webhook Logs (Lịch sử giao dịch VietQR tự động — hợp nhất đầy đủ các cột)
     await client.query(`
       CREATE TABLE IF NOT EXISTS webhook_logs (
         id SERIAL PRIMARY KEY,
         gateway VARCHAR(50) DEFAULT 'vietqr',
         order_id INT REFERENCES orders(id) ON DELETE SET NULL,
         display_id VARCHAR(50),
+        order_display_id VARCHAR(50),
         amount NUMERIC(15, 2),
         transaction_ref VARCHAR(100),
         bank_name VARCHAR(100),
+        content TEXT,
+        response_message TEXT,
         status VARCHAR(50) DEFAULT 'success',
         raw_payload JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // 11. Bang Reviews (Danh gia va cham sao san pham)
+    await client.query(`
+      ALTER TABLE webhook_logs
+      ADD COLUMN IF NOT EXISTS order_display_id VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS content TEXT,
+      ADD COLUMN IF NOT EXISTS response_message TEXT,
+      ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100);
+    `);
+
+    // 11. Bảng Reviews (Đánh giá và chấm sao sản phẩm)
     await client.query(`
       CREATE TABLE IF NOT EXISTS reviews (
         id SERIAL PRIMARY KEY,
@@ -189,7 +356,7 @@ async function initDatabase() {
       );
     `);
 
-    // 12. Bang Wishlists (Danh sach san pham yeu thich cua khach hang)
+    // 12. Bảng Wishlists (Danh sách sản phẩm yêu thích của khách hàng)
     await client.query(`
       CREATE TABLE IF NOT EXISTS wishlists (
         id SERIAL PRIMARY KEY,
@@ -200,7 +367,7 @@ async function initDatabase() {
       );
     `);
 
-    // 13. Bang Shipment Tracking Events (Lo trinh buu ta & buu cuc giao van)
+    // 13. Bảng Shipment Tracking Events (Lộ trình bưu tá & bưu cục giao vận)
     await client.query(`
       CREATE TABLE IF NOT EXISTS shipment_tracking_events (
         id SERIAL PRIMARY KEY,
@@ -212,7 +379,7 @@ async function initDatabase() {
       );
     `);
 
-    // 14. Bang Email Logs (Nhat ky email thong bao he thong)
+    // 14. Bảng Email Logs (Nhật ký email thông báo hệ thống)
     await client.query(`
       CREATE TABLE IF NOT EXISTS email_logs (
         id SERIAL PRIMARY KEY,
@@ -226,9 +393,47 @@ async function initDatabase() {
       );
     `);
 
-    console.log('✨ Khoi tao he thong co so du lieu TechPulse Modular E-Commerce thanh cong!');
+    // 15. Bảng Store Settings (Cấu hình Thương hiệu, Giao diện, Ngân hàng VietQR & Biểu phí Vận chuyển)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS store_settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        store_name VARCHAR(150) DEFAULT 'ATELIER & CO.',
+        store_tagline VARCHAR(150) DEFAULT 'Curated Multi-Category Store',
+        hero_badge VARCHAR(150) DEFAULT 'Nền tảng Bán lẻ Đa ngành Thế hệ mới',
+        hero_title VARCHAR(255) DEFAULT 'Không Gian Mua Sắm Tuyển Chọn &',
+        hero_highlight VARCHAR(255) DEFAULT 'Trải Nghiệm Đa Biến Thể',
+        hero_subtitle TEXT DEFAULT 'Từ Thời trang thiết kế, Nội thất Bắc Âu, Mỹ phẩm thiên nhiên đến Cà phê thủ công và Thiết bị âm thanh — tùy chọn kích cỡ, chất liệu, dung tích linh hoạt cùng thanh toán VietQR 24/7 tức thì.',
+        hero_image TEXT DEFAULT '/assets/editorial/hero-flagship.svg',
+        default_theme VARCHAR(20) DEFAULT 'light',
+        unit_label VARCHAR(50) DEFAULT 'sản phẩm',
+        preset_key VARCHAR(50) DEFAULT 'multi_flagship',
+        bank_id VARCHAR(50) DEFAULT 'MB',
+        bank_name VARCHAR(150) DEFAULT 'MB Bank (Ngân hàng Quân Đội)',
+        bank_account_no VARCHAR(100) DEFAULT '0345678910',
+        bank_account_name VARCHAR(150) DEFAULT 'ATELIER RETAIL CORP',
+        base_shipping_fee NUMERIC(15, 2) DEFAULT 30000,
+        free_shipping_threshold NUMERIC(15, 2) DEFAULT 1000000,
+        store_phone VARCHAR(50) DEFAULT '1900 8888',
+        store_address TEXT DEFAULT '88 Đồng Khởi, Quận 1, TP. Hồ Chí Minh',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE store_settings
+      ADD COLUMN IF NOT EXISTS bank_id VARCHAR(50) DEFAULT 'MB',
+      ADD COLUMN IF NOT EXISTS bank_name VARCHAR(150) DEFAULT 'MB Bank (Ngân hàng Quân Đội)',
+      ADD COLUMN IF NOT EXISTS bank_account_no VARCHAR(100) DEFAULT '0345678910',
+      ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(150) DEFAULT 'ATELIER RETAIL CORP',
+      ADD COLUMN IF NOT EXISTS base_shipping_fee NUMERIC(15, 2) DEFAULT 30000,
+      ADD COLUMN IF NOT EXISTS free_shipping_threshold NUMERIC(15, 2) DEFAULT 1000000,
+      ADD COLUMN IF NOT EXISTS store_phone VARCHAR(50) DEFAULT '1900 8888',
+      ADD COLUMN IF NOT EXISTS store_address TEXT DEFAULT '88 Đồng Khởi, Quận 1, TP. Hồ Chí Minh';
+    `);
+
+    console.log('✨ Khởi tạo hệ thống cơ sở dữ liệu Modular E-Commerce thành công!');
   } catch (error) {
-    console.error('❌ Loi khi khoi tao Database:', error);
+    console.error('❌ Lỗi khi khởi tạo Database:', error);
     throw error;
   } finally {
     client.release();

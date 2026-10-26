@@ -22,9 +22,12 @@ class NotificationService {
       });
       this.isTestAccount = false;
     } else {
-      // Tự động tạo Ethereal test account nếu chưa cấu hình SMTP thật
+      // Tự động tạo Ethereal test account với timeout ngắn hoặc fallback sang jsonTransport
       try {
-        const testAccount = await nodemailer.createTestAccount();
+        const testAccount = await Promise.race([
+          nodemailer.createTestAccount(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal timeout')), 2500))
+        ]);
         this.transporter = nodemailer.createTransport({
           host: 'smtp.ethereal.email',
           port: 587,
@@ -36,7 +39,7 @@ class NotificationService {
         });
         this.isTestAccount = true;
       } catch (e) {
-        // Fallback sang stream transport nếu mạng bị chặn
+        // Fallback sang jsonTransport nếu mạng ngoại vi bị chặn
         this.transporter = nodemailer.createTransport({
           jsonTransport: true
         });
@@ -45,6 +48,16 @@ class NotificationService {
     }
 
     return this.transporter;
+  }
+
+  escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   formatMoney(num) {
@@ -64,10 +77,10 @@ class NotificationService {
     const itemsRowsHtml = items.map((it) => `
       <tr>
         <td style="padding: 10px 12px; border-bottom: 1px solid #334155;">
-          <strong>${it.product_title}</strong><br/>
-          <span style="font-size: 12px; color: #94a3b8;">${it.variant_title} | SKU: ${it.sku}</span>
+          <strong>${this.escapeHtml(it.product_title)}</strong><br/>
+          <span style="font-size: 12px; color: #94a3b8;">${this.escapeHtml(it.variant_title)} | SKU: ${this.escapeHtml(it.sku)}</span>
         </td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #334155; text-align: center;">${it.quantity}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #334155; text-align: center;">${Number(it.quantity) || 1}</td>
         <td style="padding: 10px 12px; border-bottom: 1px solid #334155; text-align: right; color: #38bdf8;">
           ${this.formatMoney(it.total_price)}
         </td>
@@ -95,13 +108,13 @@ class NotificationService {
       <body>
         <div class="container">
           <div class="brand">⚡ TechPulse Modular E-Commerce</div>
-          <div class="title">Đơn hàng #${order.display_id} đã được khởi tạo!</div>
-          <div class="sub">Xin chào <strong>${order.customer_name}</strong>, cảm ơn bạn đã lựa chọn mua sắm thiết bị công nghệ tại TechPulse. Dưới đây là thông tin chi tiết đơn hàng của bạn:</div>
+          <div class="title">Đơn hàng #${this.escapeHtml(order.display_id)} đã được khởi tạo!</div>
+          <div class="sub">Xin chào <strong>${this.escapeHtml(order.customer_name)}</strong>, cảm ơn bạn đã lựa chọn mua sắm thiết bị công nghệ tại TechPulse. Dưới đây là thông tin chi tiết đơn hàng của bạn:</div>
 
           <div class="card">
             <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Địa chỉ giao hàng</div>
-            <div style="font-size: 14px; font-weight: bold; color: #ffffff;">${order.customer_name} - ${order.customer_phone}</div>
-            <div style="font-size: 14px; color: #cbd5e1; margin-top: 2px;">${order.shipping_address}</div>
+            <div style="font-size: 14px; font-weight: bold; color: #ffffff;">${this.escapeHtml(order.customer_name)} - ${this.escapeHtml(order.customer_phone)}</div>
+            <div style="font-size: 14px; color: #cbd5e1; margin-top: 2px;">${this.escapeHtml(order.shipping_address)}</div>
           </div>
 
           <table style="margin-bottom: 20px;">

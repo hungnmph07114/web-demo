@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#F2F0EC"/>
+  <circle cx="400" cy="300" r="205" fill="#E5E2DC"/>
+  <!-- Leather Tote Handles -->
+  <path d="M335 225V155C335 115 465 115 465 155V225" stroke="#451A03" stroke-width="12" stroke-linecap="round"/>
+  <!-- Tote Body -->
+  <path d="M245 215H555L530 455H270L245 215Z" fill="#78350F" stroke="#18181B" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Subtle Stitching & Clasp -->
+  <rect x="375" y="215" width="50" height="42" rx="6" fill="#451A03" stroke="#18181B" stroke-width="2.5"/>
+  <circle cx="400" cy="242" r="6" fill="#FBBF24"/>
+  <text x="400" y="555" text-anchor="middle" fill="#52525B" font-family="Georgia, serif" font-size="14" letter-spacing="3">CRAFTED LEATHER · EVERYDAY CARRY</text>
+</svg>

@@ -10,24 +10,102 @@ export function copyText(text, label = 'Nội dung', onToast) {
   });
 }
 
-export async function fetchApi(endpoint, options = {}, token = null) {
+export async function fetchApi(endpoint, options = {}, token = null, retryCount = 1) {
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
   try {
     const res = await fetch(endpoint, { ...options, headers });
-    const data = await res.json();
+    const rawText = await res.text();
+    let data = null;
+
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (_) {
+      // Nếu máy chủ đang khởi động lại hoặc cổng proxy trả về trang HTML tạm thời (502/503)
+      if (retryCount > 0) {
+        await new Promise((r) => setTimeout(r, 1200));
+        return fetchApi(endpoint, options, token, retryCount - 1);
+      }
+      throw new Error('Máy chủ đang khởi động hoặc phản hồi không hợp lệ. Vui lòng thử lại sau giây lát.');
+    }
+
     if (!res.ok) {
-      throw new Error(data.message || 'Lỗi khi gọi API');
+      throw new Error((data && data.message) || `Lỗi máy chủ (${res.status})`);
     }
     return data;
   } catch (err) {
     console.error(`API Error [${endpoint}]:`, err.message);
     throw err;
   }
+}
+
+/**
+ * Đọc file ảnh từ máy người dùng, tối ưu kích thước (nếu ảnh quá lớn) và tải lên /api/products/upload-image
+ */
+export async function uploadImageFile(file, token) {
+  if (!file) {
+    throw new Error('Vui lòng chọn tệp hình ảnh');
+  }
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Tệp được chọn phải là định dạng hình ảnh (PNG, JPG, WEBP, SVG)');
+  }
+
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result;
+      if (typeof result !== 'string') {
+        return reject(new Error('Không thể đọc tệp hình ảnh'));
+      }
+      // Nếu là SVG hoặc GIF hoặc ảnh nhỏ dưới 600KB thì giữ nguyên
+      if (file.type.includes('svg') || file.type.includes('gif') || file.size <= 600 * 1024) {
+        return resolve(result);
+      }
+      // Nén nhẹ ảnh chụp lớn qua Canvas (tối đa 1280px)
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1280;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.86));
+      };
+      img.onerror = () => resolve(result);
+      img.src = result;
+    };
+    reader.onerror = () => reject(new Error('Lỗi khi đọc file từ thiết bị'));
+    reader.readAsDataURL(file);
+  });
+
+  const res = await fetchApi(
+    '/api/products/upload-image',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: file.name,
+        dataUrl
+      })
+    },
+    token
+  );
+
+  return res.data.url;
 }
 
 /**

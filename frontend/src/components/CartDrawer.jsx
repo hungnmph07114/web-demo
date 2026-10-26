@@ -6,6 +6,7 @@ export default function CartDrawer({
   isOpen,
   onClose,
   cart,
+  storeSettings,
   onUpdateQty,
   onRemoveItem,
   appliedVoucher,
@@ -18,6 +19,16 @@ export default function CartDrawer({
   const [isApplying, setIsApplying] = useState(false);
 
   if (!isOpen) return null;
+
+  const unitLabel = storeSettings?.unit_label || 'sản phẩm';
+  const freeThreshold =
+    storeSettings?.free_shipping_threshold !== undefined && storeSettings?.free_shipping_threshold !== null
+      ? parseFloat(storeSettings.free_shipping_threshold)
+      : 1000000;
+  const baseShippingFee =
+    storeSettings?.base_shipping_fee !== undefined && storeSettings?.base_shipping_fee !== null
+      ? parseFloat(storeSettings.base_shipping_fee)
+      : 30000;
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -35,8 +46,9 @@ export default function CartDrawer({
     discount = Math.min(discount, subtotal);
   }
 
-  const shipping = subtotal >= 5000000 || subtotal === 0 ? 0 : 30000;
+  const shipping = subtotal >= freeThreshold || subtotal === 0 ? 0 : baseShippingFee;
   const total = Math.max(0, subtotal - discount + shipping);
+  const amountToFreeShip = Math.max(0, freeThreshold - subtotal);
 
   const handleApply = async () => {
     if (!voucherInput.trim()) {
@@ -67,12 +79,28 @@ export default function CartDrawer({
           <div className="drawer-title">
             <ShoppingBag size={20} />
             <span>Giỏ Hàng Của Bạn</span>
-            <span className="drawer-badge">{totalItems} món</span>
+            <span className="drawer-badge">{totalItems} {unitLabel}</span>
           </div>
           <button className="drawer-close-btn" onClick={onClose} aria-label="Đóng giỏ hàng">
             <X size={20} />
           </button>
         </div>
+
+        {cart.length > 0 && (
+          <div
+            style={{
+              padding: '8px 20px',
+              fontSize: '0.78rem',
+              background: amountToFreeShip === 0 ? 'rgba(4, 120, 87, 0.1)' : 'var(--bg-surface-elevated)',
+              color: amountToFreeShip === 0 ? 'var(--accent-emerald)' : 'var(--text-muted)',
+              borderBottom: '1px solid var(--border-glass)'
+            }}
+          >
+            {amountToFreeShip === 0
+              ? `🚚 Đơn hàng của bạn đã đủ điều kiện Miễn phí vận chuyển (từ ${formatMoney(freeThreshold)})!`
+              : `🚚 Mua thêm ${formatMoney(amountToFreeShip)} để được Miễn phí vận chuyển toàn quốc`}
+          </div>
+        )}
 
         {/* Drawer Items */}
         <div className="drawer-items-list">
@@ -81,7 +109,7 @@ export default function CartDrawer({
               <div className="cart-empty-icon">🛒</div>
               <h4>Giỏ hàng đang trống</h4>
               <p style={{ fontSize: '0.85rem', marginTop: '6px' }}>
-                Khám phá các thiết bị công nghệ đỉnh cao và thêm vào giỏ nhé!
+                Khám phá bộ sưu tập sản phẩm đa ngành và thêm vào giỏ hàng của bạn nhé!
               </p>
             </div>
           ) : (

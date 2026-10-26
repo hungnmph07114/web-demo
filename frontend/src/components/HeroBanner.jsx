@@ -1,49 +1,89 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tag } from 'lucide-react';
 
-export default function HeroBanner({ onCopyVoucher }) {
+export default function HeroBanner({ storeSettings, onCopyVoucher }) {
+  const [imgError, setImgError] = useState(false);
+
+  const badge = storeSettings?.hero_badge || 'Nền tảng Bán lẻ Đa ngành Thế hệ mới';
+  const title = storeSettings?.hero_title || 'Không Gian Mua Sắm Tuyển Chọn &';
+  const highlight = storeSettings?.hero_highlight || 'Trải Nghiệm Đa Biến Thể';
+  const subtitle =
+    storeSettings?.hero_subtitle ||
+    'Từ Thời trang thiết kế, Nội thất Bắc Âu, Mỹ phẩm thiên nhiên đến Cà phê thủ công và Thiết bị âm thanh — tùy chọn kích cỡ, chất liệu, dung tích linh hoạt cùng thanh toán VietQR 24/7 tức thì.';
+  const heroImage =
+    !imgError && storeSettings?.hero_image
+      ? storeSettings.hero_image
+      : '/assets/editorial/hero-flagship.svg';
+
   return (
     <div className="hero-banner">
-      <div className="hero-content">
-        <div className="hero-badge">🚀 Kiến trúc Headless Modular E-Commerce</div>
+      <div className="hero-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="hero-badge">{badge}</div>
         <h1 className="hero-title">
-          Đồ Công Nghệ Flagship &<br />
-          <span className="gradient-text">Hệ Thống Đa Biến Thể</span>
+          {title}
+          <br />
+          <span className="gradient-text">{highlight}</span>
         </h1>
-        <p className="hero-desc">
-          Trải nghiệm mua sắm thiết bị cao cấp với khả năng tùy chọn màu sắc, dung lượng và thanh toán tự động qua cổng <strong>VietQR NAPAS 247</strong>.
-        </p>
+        <p className="hero-desc">{subtitle}</p>
 
         <div className="hero-vouchers">
-          <span className="voucher-tag" onClick={() => onCopyVoucher('TECHPULSE50K')}>
-            <Tag size={14} /> Giảm 50K: <strong>TECHPULSE50K</strong> (Click sao chép)
-          </span>
-          <span className="voucher-tag" onClick={() => onCopyVoucher('VIP10')}>
-            <Tag size={14} /> Giảm 10%: <strong>VIP10</strong> (Click sao chép)
-          </span>
+          <button
+            type="button"
+            className="voucher-tag"
+            onClick={() => onCopyVoucher('WELCOME50K')}
+          >
+            <Tag size={13} style={{ color: 'var(--accent-cyan)' }} />
+            <span>
+              Giảm 50K đơn từ 300K: <strong>WELCOME50K</strong> (Sao chép)
+            </span>
+          </button>
+          <button
+            type="button"
+            className="voucher-tag"
+            onClick={() => onCopyVoucher('VIP10')}
+          >
+            <Tag size={13} style={{ color: 'var(--accent-cyan)' }} />
+            <span>
+              Ưu đãi 10%: <strong>VIP10</strong> (Sao chép)
+            </span>
+          </button>
+          <button
+            type="button"
+            className="voucher-tag"
+            onClick={() => onCopyVoucher('FREESHIP')}
+          >
+            <Tag size={13} style={{ color: 'var(--accent-cyan)' }} />
+            <span>
+              Trợ giá vận chuyển: <strong>FREESHIP</strong>
+            </span>
+          </button>
         </div>
       </div>
 
       <div className="hero-card">
-        <div className="hero-card-inner">
-          <div className="hero-status">
-            <span className="status-dot"></span> Hệ thống đang hoạt động
+        <div style={{ width: '100%', aspectRatio: '16 / 9', background: 'var(--bg-media)', overflow: 'hidden' }}>
+          <img
+            src={heroImage}
+            alt={title}
+            referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
+        <div className="hero-stat-row">
+          <div className="stat-item">
+            <span className="stat-num">Đa ngành</span>
+            <span className="stat-label">Thời trang · Nội thất · Mỹ phẩm · F&amp;B</span>
           </div>
-          <div className="hero-stat-row">
-            <div className="stat-item">
-              <span className="stat-num">15+</span>
-              <span className="stat-label">Biến thể cấu hình</span>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <span className="stat-num">0%</span>
-              <span className="stat-label">Phí VietQR 24/7</span>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <span className="stat-num">100%</span>
-              <span className="stat-label">Chính hãng</span>
-            </div>
+          <div className="stat-divider"></div>
+          <div className="stat-item">
+            <span className="stat-num">24/7</span>
+            <span className="stat-label">Đối soát VietQR tự động</span>
+          </div>
+          <div className="stat-divider"></div>
+          <div className="stat-item">
+            <span className="stat-num">100%</span>
+            <span className="stat-label">Quản lý tồn kho theo SKU</span>
           </div>
         </div>
       </div>

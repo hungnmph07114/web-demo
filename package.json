@@ -5,9 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.11",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

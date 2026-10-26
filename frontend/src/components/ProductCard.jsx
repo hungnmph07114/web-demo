@@ -1,28 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatMoney } from '../services/api';
 import { ArrowRight, Star, Heart } from 'lucide-react';
 
 export default function ProductCard({ product, onSelect, isWishlisted, onToggleWishlist }) {
+  const [imgError, setImgError] = useState(false);
+
   const minPrice = parseFloat(product.min_price);
   const maxPrice = parseFloat(product.max_price);
-  const priceDisplay = minPrice === maxPrice
-    ? formatMoney(minPrice)
-    : `${formatMoney(minPrice)} - ${formatMoney(maxPrice)}`;
+  const priceDisplay =
+    minPrice === maxPrice
+      ? formatMoney(minPrice)
+      : `${formatMoney(minPrice)} – ${formatMoney(maxPrice)}`;
+
+  const imageSrc =
+    !imgError && product.thumbnail
+      ? product.thumbnail
+      : '/assets/editorial/hero-flagship.svg';
 
   return (
     <div className="product-card" onClick={() => onSelect(product.id)}>
-      <div className="product-thumb-box" style={{ position: 'relative' }}>
+      <div className="product-thumb-box">
         <img
-          src={product.thumbnail || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'}
+          src={imageSrc}
           alt={product.title}
           loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setImgError(true)}
         />
-        <span className="card-cat-badge">
-          {product.category_icon || '📱'} {product.category_name || 'Công nghệ'}
-        </span>
-        <span className="card-variants-badge">
-          {product.variants_count} biến thể
-        </span>
 
         {/* Wishlist Heart Button */}
         <button
@@ -31,51 +35,56 @@ export default function ProductCard({ product, onSelect, isWishlisted, onToggleW
             e.stopPropagation();
             if (onToggleWishlist) onToggleWishlist(product.id);
           }}
-          title={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
+          title={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
           style={{
             position: 'absolute',
-            top: '10px',
-            right: '10px',
+            top: '12px',
+            right: '12px',
             zIndex: 5,
-            width: '32px',
-            height: '32px',
+            width: '34px',
+            height: '34px',
             borderRadius: '50%',
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(8px)',
-            border: isWishlisted ? '1px solid #EF4444' : '1px solid rgba(255, 255, 255, 0.2)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-glass)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'transform 0.2s ease, border-color 0.2s ease'
+            boxShadow: 'var(--shadow-sm)',
+            transition: 'transform 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <Heart
-            size={16}
-            fill={isWishlisted ? '#EF4444' : 'transparent'}
-            color={isWishlisted ? '#EF4444' : '#fff'}
+            size={15}
+            fill={isWishlisted ? '#BE123C' : 'transparent'}
+            color={isWishlisted ? '#BE123C' : 'var(--text-main)'}
           />
         </button>
       </div>
 
       <div className="product-info">
+        {/* Clean Unboxed Metadata Line (Zero-Pill Discipline) */}
+        <div className="product-meta-line">
+          <span>{product.category_name || 'Bộ sưu tập'}</span>
+          <span aria-hidden="true">·</span>
+          <span>{product.variants_count} phiên bản</span>
+          <span aria-hidden="true">·</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--accent-amber)' }}>
+            <Star size={11} fill="currentColor" />
+            <span>{product.average_rating || '5.0'}</span>
+          </span>
+        </div>
+
         <h3 className="product-title">{product.title}</h3>
         <p className="product-subtitle">{product.subtitle || product.title}</p>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', color: '#FBBF24', margin: '6px 0 10px 0' }}>
-          <Star size={13} fill="#FBBF24" color="#FBBF24" />
-          <span style={{ fontWeight: 700 }}>{product.average_rating || '5.0'}</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>({product.reviews_count || 0} đánh giá)</span>
-        </div>
+
         <div className="product-bottom">
           <div className="price-range">
-            <span className="price-label">Giá từ</span>
+            <span className="price-label">Giá bán</span>
             <span className="price-val">{priceDisplay}</span>
           </div>
-          <button className="btn-card-select">
-            <span>Chọn cấu hình</span>
+          <button type="button" className="btn-card-select">
+            <span>Tùy chọn</span>
             <ArrowRight size={14} />
           </button>
         </div>
