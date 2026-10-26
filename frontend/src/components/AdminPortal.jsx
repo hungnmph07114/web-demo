@@ -29,13 +29,15 @@ import {
   Sliders,
   Search,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import AdminOrderDetailModal from './AdminOrderDetailModal';
 import AdminCreateProductModal from './AdminCreateProductModal';
 import AdminEditProductModal from './AdminEditProductModal';
 import AdminCreatePromoModal from './AdminCreatePromoModal';
 import AdminVariantEditModal from './AdminVariantEditModal';
+import AdminDocsTab from './AdminDocsTab';
 
 const STORE_PRESETS = [
   {
@@ -145,6 +147,11 @@ const MODULE_META = {
     breadcrumb: 'Cấu hình & Tự động hóa',
     title: 'Nhật ký Email Giao dịch',
     subtitle: 'Theo dõi lịch sử gửi thông báo xác nhận đơn hàng, biên lai VietQR và trạng thái vận chuyển cho khách hàng.'
+  },
+  tabDocs: {
+    breadcrumb: 'Tài liệu & Vận hành',
+    title: 'Cẩm nang Cài đặt & Triển khai',
+    subtitle: 'Hướng dẫn chi tiết toàn bộ các bước thiết lập tài khoản, biến môi trường, cơ sở dữ liệu Supabase, cổng VietQR và giữ server 24/7.'
   }
 };
 
@@ -683,6 +690,22 @@ export default function AdminPortal({
                 <span>Email Giao dịch</span>
               </span>
               <span className="admin-nav-count">{emailLogs.length}</span>
+            </button>
+          </div>
+
+          {/* Group 4: Documentation & Setup Guide */}
+          <div className="admin-nav-group">
+            <span className="admin-nav-group-label">Tài liệu &amp; Vận hành</span>
+            <button
+              type="button"
+              className={`admin-nav-item ${activeTab === 'tabDocs' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tabDocs')}
+            >
+              <span className="admin-nav-item-left">
+                <BookOpen size={16} />
+                <span>Cẩm nang Cài đặt</span>
+              </span>
+              <span className="admin-nav-count" style={{ background: 'var(--accent-cyan)', color: '#fff' }}>Mới</span>
             </button>
           </div>
 
@@ -2567,6 +2590,9 @@ export default function AdminPortal({
               </div>
             </div>
           )}
+
+          {/* Tab 7: Installation & Deployment Documentation */}
+          {activeTab === 'tabDocs' && <AdminDocsTab onToast={onToast} />}
         </div>
       </div>
 
