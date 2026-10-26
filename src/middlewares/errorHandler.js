@@ -1,30 +1,21 @@
-/**
- * Centralized Error Handling Middlewares
- */
-
-// 404 Handler cho cac API khong ton tai
-function notFoundHandler(req, res, next) {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({
-      error: 'API endpoint không tồn tại',
-      path: req.originalUrl
-    });
-  }
-  next();
+function errorHandler(err, req, res, next) {
+  console.error('💥 Unhandled Error:', err);
+  const status = err.status || 500;
+  res.status(status).json({
+    success: false,
+    message: err.message || 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau.',
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
 }
 
-// 500 Global Error Handler
-function globalErrorHandler(err, req, res, next) {
-  console.error('🔥 Server Error:', err.stack || err.message);
-  
-  const statusCode = err.status || 500;
-  res.status(statusCode).json({
-    error: err.message || 'Đã xảy ra lỗi nội bộ máy chủ',
-    ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
+function notFoundHandler(req, res) {
+  res.status(404).json({
+    success: false,
+    message: `Không tìm thấy tài nguyên API: ${req.method} ${req.originalUrl}`
   });
 }
 
 module.exports = {
-  notFoundHandler,
-  globalErrorHandler
+  errorHandler,
+  notFoundHandler
 };

@@ -1,118 +1,112 @@
-# 🏛️ KIẾN TRÚC HỆ THỐNG DỰ ÁN MATHKIDS
+# ⚡ TECHPULSE MODULAR E-COMMERCE ENGINE
+## Kiến trúc Quản lý Bán hàng Đa Biến thể & Cổng VietQR 24/7 (Lấy cảm hứng từ MedusaJS)
 
-Tài liệu này hướng dẫn chi tiết về cấu trúc thư mục, luồng dữ liệu và cách mở rộng quy mô dự án **MathKids - Nền tảng học tập rèn luyện tư duy toán cấp 1**.
+Hệ thống được tái cấu trúc và phát triển mới hoàn toàn theo tư duy **Clean Modular Architecture** của **MedusaJS** kết hợp cơ sở dữ liệu **PostgreSQL (Supabase)** và **Node.js (Express)**.
 
 ---
 
-## 📁 1. Cấu Trúc Thư Mục Chuẩn Doanh Nghiệp (Scalable Modular Architecture)
+## 🏛️ 1. Cấu Trúc Thư Mục Chuẩn Doanh Nghiệp (Modular Architecture)
 
 ```text
 hoctap/
-├── .env                                  # Biến môi trường bí mật (DATABASE_URL, PORT) - KHÔNG commit lên Git
-├── .gitignore                            # Khai báo loại trừ node_modules, .env, *.log
-├── package.json                          # Khai báo dependencies và scripts (start, dev)
-├── render.yaml                           # Cấu hình Blueprint tự động triển khai Render.com
-├── HUONG_DAN_TRIEN_KHAI_RENDER.md        # Cẩm nang triển khai cloud từ A-Z
-├── ARCHITECTURE.md                       # Sơ đồ và quy chuẩn kiến trúc mở rộng dự án
+├── .env                                  # Biến môi trường (DATABASE_URL, JWT_SECRET, VIETQR_*)
+├── .gitignore                            # Loại trừ node_modules, medusa-source, TechPulse-E-Commerce
+├── package.json                          # Khai báo Express, pg, bcryptjs, jsonwebtoken, cors
+├── server.js                             # Entrypoint: Khởi tạo database, seed dữ liệu mẫu & lắng nghe port 3000
 │
-├── server.js                             # 🚀 Điểm khởi chạy (Entrypoint) siêu gọn gàng
-│
-├── src/                                  # 🧠 TẦNG BACKEND (Node.js Express + MVC Pattern)
-│   ├── app.js                            # Cấu hình middleware Express, static files & error handler
+├── src/                                  # 🧠 TẦNG BACKEND MODULAR (Node.js)
+│   ├── app.js                            # Express app cấu hình middleware, API proxy & fallback phục vụ React build
 │   ├── config/
-│   │   └── db.js                         # Kết nối PostgreSQL (Supabase Pool), tự động khởi tạo bảng
-│   ├── controllers/                      # Tầng điều khiển (Request & Response logic)
-│   │   ├── mathController.js             # Xử lý Bảng xếp hạng, lưu điểm, thống kê toán học
-│   │   ├── notesController.js            # Xử lý CRUD ghi chú học tập
-│   │   └── statusController.js           # Kiểm tra trạng thái máy chủ, latency DB
-│   ├── routes/                           # Tầng định tuyến API tách biệt
-│   │   ├── index.js                      # Router tổng hợp (/api)
-│   │   ├── mathRoutes.js                 # Các endpoint /api/math/*
-│   │   ├── notesRoutes.js                # Các endpoint /api/notes/*
-│   │   └── statusRoutes.js               # Endpoint /api/status
-│   └── middlewares/
-│       └── errorHandler.js               # Bắt lỗi 404 cho API và Global 500 error handler
+│   │   ├── db.js                         # Kết nối Supabase PostgreSQL Pool & Auto-migrate Schema
+│   │   └── seed.js                       # Nạp dữ liệu mẫu đồ công nghệ, biến thể, voucher, tài khoản
+│   ├── middlewares/
+│   │   ├── auth.js                       # Xác thực JWT Token & Phân quyền Role Guard (Admin / Customer)
+│   │   └── errorHandler.js               # Bắt lỗi tập trung (Global Exception Handler & 404 API)
+│   ├── routes/
+│   │   └── api.js                        # Điểm định tuyến API tập trung (/api/auth, /api/products, /api/orders...)
+│   └── modules/                          # 📦 CÁC MODULE ĐỘC LẬP THEO TƯ DUY MEDUSA:
+│       ├── auth/                         # Module Xác thực: Đăng nhập, Đăng ký, Profile
+│       ├── product/                      # Module Sản phẩm: Categories, Products, Options, Variants (SKU, Giá, Tồn kho)
+│       ├── promotion/                    # Module Khuyến mãi: Voucher Code, Giảm %, Giảm cố định, Điều kiện tối thiểu
+│       ├── order/                        # Module Đơn hàng: Máy trạng thái kép (PaymentStatus & FulfillmentStatus), trừ kho, VietQR
+│       └── dashboard/                    # Module Thống kê: Doanh thu thực nhận, cảnh báo tồn kho, doanh số theo nhóm
 │
-└── public/                               # 🎨 TẦNG FRONTEND (Giao diện Client & Tương tác)
-    ├── index.html                        # Giao diện chính HTML5 chuẩn ngữ nghĩa & trợ năng
-    ├── style.css                         # Hệ thống giao diện: màu sắc, nút 3D, cân thăng bằng, lật thẻ
-    ├── app.js                            # Nhạc trưởng (Orchestrator): điều phối trạng thái và sự kiện
-    └── js/                               # Thư viện mô-đun hóa Frontend
-        ├── core/                         # Các công cụ cốt lõi tái sử dụng
-        │   ├── audio.js                  # Bộ tổng hợp âm thanh Web Audio API (0 dependencies)
-        │   ├── confetti.js               # Hiệu ứng pháo hoa giấy Canvas rực rỡ
-        │   └── utils.js                  # Mã hóa XSS (escapeHtml), format thời gian, xáo trộn mảng
-        ├── data/                         # Ngân hàng câu hỏi & cấu hình trò chơi
-        │   ├── questions.js              # Ngân hàng bài toán tư duy theo khối Lớp 1 - 5
-        │   ├── balanceStages.js          # Các màn chơi Cân thăng bằng ma thuật
-        │   └── badges.js                 # Danh mục 8 huy hiệu danh giá
-        └── services/                     # Tầng giao tiếp mạng
-            └── apiService.js             # HTTP Client kết nối các API backend
+├── frontend/                             # ⚛️ TẦNG GIAO DIỆN REACTJS (Vite + React 19 + Lucide Icons)
+│   ├── index.html                        # HTML Root cho React SPA
+│   ├── vite.config.js                    # Cấu hình proxy /api -> http://localhost:3000
+│   ├── package.json                      # React 19, Lucide Icons, Vite
+│   ├── dist/                             # Bản build sản xuất tối ưu (được Express phục vụ trực tiếp)
+│   └── src/
+│       ├── index.css                     # Design System (Dark Slate, Glassmorphism, Micro-animations)
+│       ├── App.jsx                       # Nhạc trưởng ứng dụng React: State toàn cục, giỏ hàng, phân quyền
+│       ├── main.jsx                      # React 19 Root Render
+│       ├── services/api.js               # API Client kèm tự động gắn JWT Bearer Header
+│       └── components/                   # Hệ thống Component chuẩn Medusa:
+│           ├── Navbar.jsx                # Header, Live Search, Mode Switcher, Giỏ hàng
+│           ├── HeroBanner.jsx            # Banner công nghệ cao cấp kèm mã voucher
+│           ├── CategoryFilter.jsx        # Bộ lọc danh mục dạng tabs
+│           ├── ProductCard.jsx           # Card sản phẩm hiển thị khoảng giá và số biến thể
+│           ├── ProductModal.jsx          # Bộ chọn biến thể động (Màu sắc, RAM/SSD, SKU, giá, tồn kho)
+│           ├── CartDrawer.jsx            # Drawer giỏ hàng trượt mượt mà, áp mã giảm giá
+│           ├── CheckoutModal.jsx         # Form đặt hàng & Trình diễn mã VietQR NAPAS 247 đếm ngược
+│           ├── AuthModal.jsx             # Đăng nhập / Đăng ký kèm nút điền nhanh tài khoản
+│           ├── AdminPortal.jsx           # Bảng điều khiển quản trị (Dashboard, Đơn hàng, Kho, Voucher)
+│           └── Toast.jsx                 # Hệ thống thông báo nổi góc màn hình
+│
+└── public/                               # 🎨 Static assets & Fallback giao diện
 ```
 
 ---
 
-## 🔄 2. Hướng Dẫn Mở Rộng Tính Năng
+## 💡 2. Những Tư Duy MedusaJS Đã Được Hiện Thực Hóa
 
-### ➕ Cách 1: Thêm câu hỏi tư duy mới cho Khối Lớp
-Mở tệp [public/js/data/questions.js](file:///c:/Users/84123/OneDrive/Desktop/hoctap/public/js/data/questions.js), tìm khối lớp muốn thêm (`1`, `2`, `3`, `4`, hoặc `5`) và chèn cấu trúc:
-```javascript
-{
-  id: 'g3_6',
-  topic: 'Quy luật ma trận',
-  diff: 'Vừa',
-  question: 'Đề bài câu hỏi...',
-  visual: {
-    type: 'sequence', // hoặc 'equation', 'shapes'
-    items: ['1', '4', '9', '16', '?']
-  },
-  options: ['20', '25', '30', '36'],
-  correct: '25',
-  hint: 'Gợi ý từ Bé PiPi...',
-  explanation: 'Giải thích từng bước chi tiết...'
-}
-```
+### 1. Mô hình Biến thể Sản phẩm (Product Variants & Options)
+* Thay vì 1 sản phẩm chỉ có 1 giá và 1 tồn kho, hệ thống phân tách:
+  * `products`: Tên chung, mô tả, ảnh đại diện.
+  * `product_options`: Danh mục thuộc tính (ví dụ: `Màu sắc`, `Dung lượng/Cấu hình`).
+  * `product_variants`: Từng tổ hợp phiên bản cụ thể (Ví dụ: `Titan Tự Nhiên / 256GB` - SKU: `IP15PM-NT-256`, Giá: `29.990.000đ`, Tồn kho: `15`).
+* Khách hàng chọn Màu và Dung lượng $\rightarrow$ Giao diện tự động nhảy giá và kiểm tra tồn kho chính xác của biến thể đó.
 
-### ➕ Cách 2: Thêm màn chơi Cân Thăng Bằng mới
-Mở tệp [public/js/data/balanceStages.js](file:///c:/Users/84123/OneDrive/Desktop/hoctap/public/js/data/balanceStages.js), thêm màn mới vào mảng `BALANCE_STAGES`:
-```javascript
-{
-  level: 7,
-  leftItems: [
-    { type: 'fruit', symbol: '🍓', name: 'Dâu' },
-    { type: 'weight', label: '6kg', val: 6 }
-  ],
-  rightItems: [
-    { type: 'weight', label: '14kg', val: 14 }
-  ],
-  unknownItem: '1 Quả Dâu 🍓',
-  correctWeight: 8,
-  options: [6, 7, 8, 9],
-  explanation: '🍓 + 6kg = 14kg  =>  🍓 = 14 - 6 = 8kg.'
-}
-```
+### 2. Máy Trạng Thái Kép Cho Đơn Hàng (Dual State Machine)
+Tách biệt hoàn toàn 2 vòng đời:
+* **Trạng thái Thanh toán (`payment_status`):**
+  * `awaiting_vietqr`: Khách hàng đang quét mã QR (15 phút)
+  * `captured`: Quản trị viên đối soát biến động số dư và xác nhận nhận tiền thành công
+  * `refunded`: Đã hoàn tiền cho khách
+* **Trạng thái Vận chuyển (`fulfillment_status`):**
+  * `processing`: Đơn hàng mới tiếp nhận
+  * `packing`: Đang đóng gói tại kho
+  * `shipped`: Đã giao cho đơn vị vận chuyển
+  * `delivered`: Khách hàng đã nhận máy
+  * `canceled`: Đã hủy đơn
 
-### ➕ Cách 3: Thêm API Backend mới
-1. Viết hàm xử lý trong `src/controllers/tenController.js`.
-2. Khai báo route trong `src/routes/tenRoutes.js`.
-3. Nhúng vào `src/routes/index.js`.
-*(Mã nguồn hoàn toàn tách biệt, không cần sửa đổi server.js)*.
+### 3. Tích Hợp Cổng VietQR Chuẩn NAPAS 247
+* Tạo ảnh VietQR động theo từng đơn hàng từ dịch vụ `img.vietqr.io`.
+* Tự động điền: **Số tài khoản**, **Số tiền chính xác đến từng đồng**, **Nội dung chuyển khoản chứa mã đơn hàng**.
+* Đồng hồ đếm ngược 15 phút bảo mật.
+* Hỗ trợ nút sao chép nhanh (1-Click Copy) cho khách hàng.
+
+### 4. Quản Lý Kho & Trừ Tồn Kho Thời Gian Thực
+* Khi khách hàng đặt hàng thành công, hệ thống sử dụng Transaction của PostgreSQL (`BEGIN ... FOR UPDATE ... COMMIT`) để kiểm tra tồn kho từng biến thể và trừ trực tiếp `inventory_quantity`.
+* Nếu số lượng mua vượt quá số lượng còn lại trong kho, hệ thống trả về thông báo lỗi chi tiết kèm số lượng máy còn lại.
 
 ---
 
-## ⚡ 3. Các Lệnh Điều Hành
+## 🔑 3. Tài Khoản Trải Nghiệm Có Sẵn
 
-- Chạy local trong môi trường phát triển:
-  ```bash
-  npm run dev
-  ```
-- Chạy production trên server / Render:
-  ```bash
-  npm start
-  ```
-- Kiểm tra trạng thái Git và đẩy lên đám mây:
-  ```bash
-  git add .
-  git commit -m "feat: restructure project into scalable modular architecture"
-  git push origin main
-  ```
+Hệ thống đã tự động tạo sẵn 2 tài khoản mẫu:
+
+| Vai trò | Email đăng nhập | Mật khẩu | Quyền hạn |
+| :--- | :--- | :--- | :--- |
+| 👑 **Quản trị viên (Admin)** | `admin@techpulse.vn` | `admin123` | Toàn quyền xem Dashboard, Quản lý đơn hàng, Xác nhận thanh toán VietQR, Cập nhật tiến độ giao hàng, Xem tồn kho |
+| 👤 **Khách hàng (Customer)** | `user@techpulse.vn` | `user123` | Xem sản phẩm, Chọn biến thể cấu hình, Thêm giỏ hàng, Áp mã voucher, Đặt hàng VietQR |
+
+*(Trên giao diện đăng nhập có sẵn nút **"⚡ Điền nhanh tài khoản thử nghiệm"** để đăng nhập 1 chạm).*
+
+---
+
+## 🏷️ 4. Mã Khuyến Mãi Có Sẵn Để Thử Nghiệm
+
+* `TECHPULSE50K`: Giảm trực tiếp **50.000đ** cho đơn từ 500.000đ.
+* `VIP10`: Giảm **10%** (tối đa 2.000.000đ) cho đơn từ 15.000.000đ.
+* `FREESHIP`: Miễn phí giao hàng (trợ giá 30.000đ).
