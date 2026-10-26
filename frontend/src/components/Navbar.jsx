@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Search, X, User, Shield, Store, Zap, Truck } from 'lucide-react';
+import { ShoppingCart, Search, X, User, Shield, Store, Zap, Truck, ShoppingBag, Heart } from 'lucide-react';
 
 export default function Navbar({
   searchQuery,
@@ -9,8 +9,11 @@ export default function Navbar({
   user,
   cartCount,
   onOpenCart,
+  wishlistCount = 0,
+  onOpenWishlist,
   onOpenAuth,
   onOpenTracking,
+  onOpenMyOrders,
   onLogout
 }) {
   return (
@@ -91,6 +94,15 @@ export default function Navbar({
               </span>
               <button
                 className="btn btn-secondary"
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: 'var(--radius-full)' }}
+                onClick={onOpenMyOrders}
+                title="Xem lịch sử đơn hàng đã đặt"
+              >
+                <ShoppingBag size={13} style={{ color: 'var(--accent-cyan)' }} />
+                <span>Đơn của tôi</span>
+              </button>
+              <button
+                className="btn btn-secondary"
                 style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                 onClick={onLogout}
               >
@@ -103,6 +115,44 @@ export default function Navbar({
               <span>Đăng nhập</span>
             </button>
           )}
+
+          {/* Wishlist Button */}
+          <button
+            className="btn btn-secondary"
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              borderRadius: 'var(--radius-full)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              position: 'relative'
+            }}
+            onClick={onOpenWishlist}
+            title="Xem danh sách sản phẩm yêu thích"
+          >
+            <Heart
+              size={15}
+              fill={wishlistCount > 0 ? '#EF4444' : 'transparent'}
+              color={wishlistCount > 0 ? '#EF4444' : 'var(--text-muted)'}
+            />
+            <span>Yêu thích</span>
+            {wishlistCount > 0 && (
+              <span
+                style={{
+                  background: '#EF4444',
+                  color: '#fff',
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  marginLeft: '2px'
+                }}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </button>
 
           {/* Cart Button */}
           <button className="btn-cart" onClick={onOpenCart} aria-label="Giỏ hàng">

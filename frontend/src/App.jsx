@@ -9,6 +9,8 @@ import CheckoutModal from './components/CheckoutModal';
 import AuthModal from './components/AuthModal';
 import AdminPortal from './components/AdminPortal';
 import OrderTrackingModal from './components/OrderTrackingModal';
+import MyOrdersModal from './components/MyOrdersModal';
+import WishlistDrawer from './components/WishlistDrawer';
 import Toast from './components/Toast';
 import { fetchApi } from './services/api';
 
@@ -30,6 +32,18 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [isMyOrdersOpen, setIsMyOrdersOpen] = useState(false);
+  const [trackingInitialQuery, setTrackingInitialQuery] = useState('');
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+
+  // Wishlist State (hybrid LocalStorage + DB)
+  const [wishlistIds, setWishlistIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('techpulse_wishlist') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Cart & Voucher State
   const [cart, setCart] = useState(() => {
@@ -73,6 +87,45 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('techpulse_react_cart', JSON.stringify(cart));
   }, [cart]);
+
+  // Save Wishlist to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('techpulse_wishlist', JSON.stringify(wishlistIds));
+  }, [wishlistIds]);
+
+  // Sync Wishlist with backend when user is logged in
+  useEffect(() => {
+    if (token) {
+      const localIds = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('techpulse_wishlist') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+
+      if (localIds.length > 0) {
+        fetchApi('/api/wishlist/sync', {
+          method: 'POST',
+          body: JSON.stringify({ productIds: localIds })
+        }, token)
+          .then((res) => {
+            if (res.success && res.data?.productIds) {
+              setWishlistIds(res.data.productIds);
+            }
+          })
+          .catch(console.error);
+      } else {
+        fetchApi('/api/wishlist', {}, token)
+          .then((res) => {
+            if (res.success && res.data?.productIds) {
+              setWishlistIds(res.data.productIds);
+            }
+          })
+          .catch(console.error);
+      }
+    }
+  }, [token]);
 
   // Load Categories
   useEffect(() => {
@@ -227,6 +280,36 @@ export default function App() {
     addToast('Đã đăng xuất tài khoản');
   };
 
+  // Wishlist toggle operation
+  const handleToggleWishlist = async (productId) => {
+    const isCurrentlyWishlisted = wishlistIds.includes(productId);
+
+    if (token) {
+      try {
+        const res = await fetchApi('/api/wishlist/toggle', {
+          method: 'POST',
+          body: JSON.stringify({ productId })
+        }, token);
+
+        if (res.success && res.data) {
+          setWishlistIds(res.data.productIds);
+          addToast(res.message);
+        }
+      } catch (err) {
+        addToast(err.message, 'error');
+      }
+    } else {
+      // Khách vãng lai lưu trên LocalStorage
+      if (isCurrentlyWishlisted) {
+        setWishlistIds((prev) => prev.filter((id) => id !== productId));
+        addToast('Đã bỏ khỏi danh sách yêu thích');
+      } else {
+        setWishlistIds((prev) => [...prev, productId]);
+        addToast('Đã thêm vào danh sách yêu thích ❤️');
+      }
+    }
+  };
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -240,8 +323,14 @@ export default function App() {
         user={user}
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
+        wishlistCount={wishlistIds.length}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenTracking={() => setIsTrackingOpen(true)}
+        onOpenTracking={() => {
+          setTrackingInitialQuery('');
+          setIsTrackingOpen(true);
+        }}
+        onOpenMyOrders={() => setIsMyOrdersOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -279,6 +368,8 @@ export default function App() {
                   key={p.id}
                   product={p}
                   onSelect={(id) => setSelectedProductId(id)}
+                  isWishlisted={wishlistIds.includes(p.id)}
+                  onToggleWishlist={handleToggleWishlist}
                 />
               ))}
             </div>
@@ -299,6 +390,10 @@ export default function App() {
         onClose={() => setSelectedProductId(null)}
         onAddToCart={handleAddToCart}
         onToast={addToast}
+        token={token}
+        currentUser={user}
+        isWishlisted={detailedProduct ? wishlistIds.includes(detailedProduct.id) : false}
+        onToggleWishlist={handleToggleWishlist}
       />
 
       <CartDrawer
@@ -339,8 +434,32 @@ export default function App() {
 
       <OrderTrackingModal
         isOpen={isTrackingOpen}
-        onClose={() => setIsTrackingOpen(false)}
+        onClose={() => {
+          setIsTrackingOpen(false);
+          setTrackingInitialQuery('');
+        }}
         onToast={addToast}
+        initialOrderQuery={trackingInitialQuery}
+      />
+
+      <MyOrdersModal
+        isOpen={isMyOrdersOpen}
+        onClose={() => setIsMyOrdersOpen(false)}
+        token={token}
+        onToast={addToast}
+        onOpenTracking={(displayId) => {
+          setTrackingInitialQuery(displayId);
+          setIsTrackingOpen(true);
+        }}
+      />
+
+      {/* Wishlist Drawer */}
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlistItems={products.filter((p) => wishlistIds.includes(p.id))}
+        onRemoveWishlist={handleToggleWishlist}
+        onSelectProduct={(id) => setSelectedProductId(id)}
       />
 
       {/* Toast notifications */}

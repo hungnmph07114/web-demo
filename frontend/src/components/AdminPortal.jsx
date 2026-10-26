@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { formatMoney, fetchApi } from '../services/api';
-import { RefreshCw, Plus, DollarSign, Package, Clock, AlertTriangle, QrCode, Tag, Layers, Eye, Edit3 } from 'lucide-react';
+import { formatMoney, fetchApi, exportOrdersToCSV } from '../services/api';
+import { RefreshCw, Plus, DollarSign, Package, Clock, AlertTriangle, QrCode, Tag, Layers, Eye, Edit3, Zap, Send, Download } from 'lucide-react';
 import AdminOrderDetailModal from './AdminOrderDetailModal';
 import AdminCreateProductModal from './AdminCreateProductModal';
 import AdminCreatePromoModal from './AdminCreatePromoModal';
@@ -12,10 +12,16 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [promotions, setPromotions] = useState([]);
+  const [webhookLogs, setWebhookLogs] = useState([]);
   const [filterPayment, setFilterPayment] = useState('all');
   const [filterFulfillment, setFilterFulfillment] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Webhook Simulator state in Admin
+  const [simOrderCode, setSimOrderCode] = useState('');
+  const [simAmount, setSimAmount] = useState('');
+  const [isSimulating, setIsSimulating] = useState(false);
 
   // Sub-modal states
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -27,16 +33,18 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [mRes, oRes, iRes, pRes] = await Promise.all([
+      const [mRes, oRes, iRes, pRes, wRes] = await Promise.all([
         fetchApi('/api/dashboard/metrics', {}, token),
         fetchApi('/api/orders', {}, token),
         fetchApi('/api/products', {}, token),
-        fetchApi('/api/promotions', {}, token)
+        fetchApi('/api/promotions', {}, token),
+        fetchApi('/api/webhooks/vietqr/logs?limit=30', {}, token).catch(() => ({ data: [] }))
       ]);
       setMetrics(mRes.data);
       setOrders(oRes.data);
       setInventory(iRes.data);
       setPromotions(pRes.data);
+      setWebhookLogs(wRes.data || []);
     } catch (err) {
       onToast(err.message, 'error');
     } finally {
@@ -91,6 +99,39 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
     }
   };
 
+  const handleSimulateWebhook = async (e) => {
+    e.preventDefault();
+    if (!simOrderCode.trim()) {
+      onToast('Vui lòng nhập mã đơn hàng (VD: TP-9619)', 'error');
+      return;
+    }
+
+    setIsSimulating(true);
+    try {
+      const res = await fetchApi('/api/webhooks/vietqr/simulate', {
+        method: 'POST',
+        body: JSON.stringify({
+          display_id: simOrderCode.trim().toUpperCase(),
+          amount: parseFloat(simAmount) || undefined,
+          bank_name: 'MB Bank (Simulator 24/7)'
+        })
+      });
+
+      if (res.success) {
+        onToast(`⚡ Webhook thành công: ${res.message}`);
+        setSimOrderCode('');
+        setSimAmount('');
+        loadData();
+      } else {
+        onToast(res.message, 'error');
+      }
+    } catch (err) {
+      onToast(err.message, 'error');
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   // Filtered orders
   const filteredOrders = orders.filter((o) => {
     if (filterPayment !== 'all' && o.payment_status !== filterPayment) return false;
@@ -111,9 +152,24 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
       <div className="admin-top-bar">
         <div>
           <h1 className="admin-title">Bảng Điều Khiển Quản Trị (Admin Portal)</h1>
-          <p className="admin-sub">Quản lý toàn diện theo kiến trúc Module: Doanh thu, Đơn hàng, Biến thể & Tồn kho</p>
+          <p className="admin-sub">Quản lý toàn diện theo kiến trúc Module: Doanh thu, Đơn hàng, Biến thể & Cổng VietQR 24/7</p>
         </div>
         <div className="admin-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              if (!orders.length) {
+                onToast('Không có đơn hàng nào để xuất', 'error');
+                return;
+              }
+              exportOrdersToCSV(orders);
+              onToast(`Đã tải file Excel báo cáo toàn bộ ${orders.length} đơn hàng!`);
+            }}
+            title="Xuất toàn bộ doanh thu và danh sách đơn hàng ra file Excel / CSV (UTF-8)"
+          >
+            <Download size={15} />
+            <span>Xuất Excel ({orders.length})</span>
+          </button>
           <button className="btn btn-secondary" onClick={loadData} disabled={isLoading}>
             <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
             <span>Làm mới</span>
@@ -146,6 +202,12 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
           onClick={() => setActiveTab('tabPromotions')}
         >
           🎟️ Mã Khuyến Mãi ({promotions.length})
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'tabWebhooks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tabWebhooks')}
+        >
+          ⚡ Cổng VietQR 24/7 ({webhookLogs.length})
         </button>
       </div>
 
@@ -220,17 +282,17 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
             </div>
 
             <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
-              <h3 style={{ fontSize: '1.05rem', marginBottom: '8px', color: 'var(--accent-emerald)' }}>🎟️ Kích cầu Voucher & Marketing</h3>
+              <h3 style={{ fontSize: '1.05rem', marginBottom: '8px', color: 'var(--accent-emerald)' }}>⚡ Webhook VietQR Tự Động 24/7</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                Tạo mã giảm giá theo tỷ lệ % hoặc số tiền cố định cho các chiến dịch bán lẻ.
+                Tự động nhận diện biến động số dư ngân hàng và khớp trạng thái đơn hàng tức thì.
               </p>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-primary" onClick={() => setIsCreatePromoOpen(true)}>
-                  <Tag size={16} />
-                  <span>Tạo Voucher Mới</span>
+                <button className="btn btn-primary" onClick={() => setActiveTab('tabWebhooks')}>
+                  <Zap size={16} />
+                  <span>Nhật Ký Webhook</span>
                 </button>
-                <button className="btn btn-secondary" onClick={() => setActiveTab('tabPromotions')}>
-                  <span>Danh Sách Mã Khuyến Mãi</span>
+                <button className="btn btn-secondary" onClick={() => setActiveTab('tabOrders')}>
+                  <span>Xem Đơn Hàng</span>
                 </button>
               </div>
             </div>
@@ -298,6 +360,23 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
                 <option value="delivered">Đã nhận hàng</option>
                 <option value="canceled">Đã hủy</option>
               </select>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (!filteredOrders.length) {
+                    onToast('Không có đơn hàng nào khớp bộ lọc để xuất', 'error');
+                    return;
+                  }
+                  exportOrdersToCSV(filteredOrders);
+                  onToast(`Đã xuất ${filteredOrders.length} đơn hàng ra file Excel!`);
+                }}
+                title="Xuất các đơn hàng theo bộ lọc hiện tại ra Excel / CSV"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Download size={14} />
+                <span>Xuất lọc ({filteredOrders.length})</span>
+              </button>
             </div>
           </div>
 
@@ -571,6 +650,170 @@ export default function AdminPortal({ token, onToast, onOpenProductModal }) {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Webhook VietQR Logs & Simulator */}
+      {activeTab === 'tabWebhooks' && (
+        <div className="admin-tab-content active">
+          {/* Webhook Configuration Guide */}
+          <div style={{
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '18px 22px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ fontSize: '1.05rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Zap size={18} />
+              <span>Cấu hình Cổng Webhook VietQR Tự Động 24/7 (SePay / Casso / Open Banking)</span>
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Khi khách hàng chuyển khoản đúng số tiền và nội dung đơn hàng (ví dụ: <code style={{ color: 'var(--accent-cyan)' }}>TP-9619</code>), ngân hàng sẽ tự động gửi webhook đến URL bên dưới để hệ thống cập nhật trạng thái đơn hàng sang <strong>Đã thanh toán (Captured)</strong> trong 1 giây mà không cần con người đối soát thủ công.
+            </p>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              background: 'rgba(0,0,0,0.3)',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.85rem'
+            }}>
+              <div>
+                <span style={{ color: 'var(--text-dim)' }}>Webhook Endpoint URL: </span>
+                <strong style={{ color: '#fff', fontFamily: 'monospace' }}>http://localhost:3000/api/webhooks/vietqr</strong>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Phương thức: </span>
+                <strong style={{ color: 'var(--accent-emerald)', fontFamily: 'monospace' }}>POST</strong> (JSON)
+              </div>
+            </div>
+          </div>
+
+          {/* Test Simulator Card */}
+          <div style={{
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '16px 20px',
+            marginBottom: '20px'
+          }}>
+            <h4 style={{ fontSize: '0.95rem', marginBottom: '8px', color: '#fff' }}>
+              ⚡ Trình Giả Lập Bắn Tín Hiệu Ngân Hàng (Webhook Simulator)
+            </h4>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Thử nghiệm khớp tiền tức thì cho bất kỳ đơn hàng nào đang ở trạng thái <strong>Chờ quét VietQR</strong>:
+            </p>
+            <form onSubmit={handleSimulateWebhook} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Mã đơn hàng (VD: TP-9619)"
+                value={simOrderCode}
+                onChange={(e) => setSimOrderCode(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  minWidth: '200px'
+                }}
+                required
+              />
+              <input
+                type="number"
+                placeholder="Số tiền chuyển (Để trống = tự lấy đủ)"
+                value={simAmount}
+                onChange={(e) => setSimAmount(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 'var(--radius-md)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  minWidth: '220px'
+                }}
+              />
+              <button type="submit" className="btn btn-primary" disabled={isSimulating} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                <Send size={14} />
+                <span>{isSimulating ? 'Đang bắn...' : 'Bắn Webhook Giả Lập'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Webhook History Table */}
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Cổng / Ngân hàng</th>
+                  <th>Mã đơn khớp</th>
+                  <th>Số tiền nhận</th>
+                  <th>Mã giao dịch (Ref)</th>
+                  <th>Trạng thái</th>
+                  <th>Chi tiết đối soát</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webhookLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                      Chưa có tín hiệu webhook nào được ghi nhận. Hãy thử bắn Webhook giả lập ở trên!
+                    </td>
+                  </tr>
+                ) : (
+                  webhookLogs.map((log) => {
+                    const statusClass =
+                      log.status === 'success'
+                        ? 'pay-captured'
+                        : log.status === 'partial'
+                        ? 'pay-pending'
+                        : 'ful-canceled';
+                    const statusLabel =
+                      log.status === 'success'
+                        ? '✅ Thành công'
+                        : log.status === 'partial'
+                        ? '⚠️ Thiếu tiền'
+                        : '✕ Bỏ qua';
+
+                    return (
+                      <tr key={log.id}>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {new Date(log.created_at).toLocaleString('vi-VN')}
+                        </td>
+                        <td>
+                          <strong>{log.gateway || 'MB'}</strong>
+                        </td>
+                        <td>
+                          {log.order_display_id ? (
+                            <strong style={{ color: 'var(--accent-cyan)' }}>#{log.order_display_id}</strong>
+                          ) : (
+                            <span style={{ color: 'var(--text-dim)' }}>Không tìm thấy</span>
+                          )}
+                        </td>
+                        <td>
+                          <strong style={{ color: '#fff' }}>{formatMoney(log.amount)}</strong>
+                        </td>
+                        <td>
+                          <code style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{log.transaction_ref}</code>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
+                        </td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '320px' }}>
+                          {log.response_message}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

@@ -33,6 +33,21 @@ class OrderController {
     }
   }
 
+  async getMyOrders(req, res, next) {
+    try {
+      const userId = req.user ? req.user.id : null;
+      const email = req.user ? req.user.email : null;
+      const data = await orderService.getMyOrders(userId, email);
+      res.json({
+        success: true,
+        count: data.length,
+        data
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getDetails(req, res, next) {
     try {
       const { idOrDisplayId } = req.params;

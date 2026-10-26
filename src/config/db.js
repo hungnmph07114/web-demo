@@ -158,6 +158,60 @@ async function initDatabase() {
       );
     `);
 
+    // 10. Bang Webhook Logs (Lich su giao dich VietQR tu dong)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS webhook_logs (
+        id SERIAL PRIMARY KEY,
+        gateway VARCHAR(50) DEFAULT 'vietqr',
+        order_id INT REFERENCES orders(id) ON DELETE SET NULL,
+        display_id VARCHAR(50),
+        amount NUMERIC(15, 2),
+        transaction_ref VARCHAR(100),
+        bank_name VARCHAR(100),
+        status VARCHAR(50) DEFAULT 'success',
+        raw_payload JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 11. Bang Reviews (Danh gia va cham sao san pham)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id SERIAL PRIMARY KEY,
+        product_id INT REFERENCES products(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE SET NULL,
+        user_name VARCHAR(150) NOT NULL,
+        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        title VARCHAR(255),
+        comment TEXT NOT NULL,
+        verified_purchase BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 12. Bang Wishlists (Danh sach san pham yeu thich cua khach hang)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS wishlists (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        product_id INT REFERENCES products(id) ON DELETE CASCADE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, product_id)
+      );
+    `);
+
+    // 13. Bang Shipment Tracking Events (Lo trinh buu ta & buu cuc giao van)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS shipment_tracking_events (
+        id SERIAL PRIMARY KEY,
+        order_id INT REFERENCES orders(id) ON DELETE CASCADE,
+        status VARCHAR(50) NOT NULL,
+        hub_name VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     console.log('✨ Khoi tao he thong co so du lieu TechPulse Modular E-Commerce thanh cong!');
   } catch (error) {
     console.error('❌ Loi khi khoi tao Database:', error);

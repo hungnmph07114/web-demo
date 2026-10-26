@@ -7,8 +7,23 @@ const promotionController = require('../modules/promotion/promotionController');
 const orderController = require('../modules/order/orderController');
 const dashboardController = require('../modules/dashboard/dashboardController');
 const webhookController = require('../modules/webhook/webhookController');
+const reviewController = require('../modules/review/reviewController');
+const wishlistController = require('../modules/wishlist/wishlistController');
+const shippingController = require('../modules/shipping/shippingController');
 
 const { authenticate, optionalAuth, requireAdmin } = require('../middlewares/auth');
+
+// ==========================================
+// 0. HEALTH CHECK
+// ==========================================
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    service: 'TechPulse Modular E-Commerce Engine'
+  });
+});
 
 // ==========================================
 // 1. AUTHENTICATION & USER ROUTES
@@ -43,6 +58,7 @@ router.patch('/promotions/:id/toggle', authenticate, requireAdmin, (req, res, ne
 // ==========================================
 router.post('/orders', optionalAuth, (req, res, next) => orderController.create(req, res, next));
 router.get('/orders', authenticate, requireAdmin, (req, res, next) => orderController.list(req, res, next));
+router.get('/orders/my-orders', authenticate, (req, res, next) => orderController.getMyOrders(req, res, next));
 router.get('/orders/:idOrDisplayId', (req, res, next) => orderController.getDetails(req, res, next));
 router.patch('/orders/:id/payment', authenticate, requireAdmin, (req, res, next) => orderController.updatePayment(req, res, next));
 router.patch('/orders/:id/fulfillment', authenticate, requireAdmin, (req, res, next) => orderController.updateFulfillment(req, res, next));
@@ -58,5 +74,26 @@ router.get('/dashboard/metrics', authenticate, requireAdmin, (req, res, next) =>
 router.post('/webhooks/vietqr', (req, res, next) => webhookController.handleBankTransfer(req, res, next));
 router.post('/webhooks/vietqr/simulate', (req, res, next) => webhookController.simulateTransfer(req, res, next));
 router.get('/webhooks/vietqr/logs', authenticate, requireAdmin, (req, res, next) => webhookController.getLogs(req, res, next));
+
+// ==========================================
+// 7. PRODUCT REVIEWS & STAR RATINGS (1-5★)
+// ==========================================
+router.get('/products/:productId/reviews', (req, res, next) => reviewController.getProductReviews(req, res, next));
+router.post('/products/:productId/reviews', optionalAuth, (req, res, next) => reviewController.createReview(req, res, next));
+router.delete('/reviews/:id', authenticate, (req, res, next) => reviewController.deleteReview(req, res, next));
+
+// ==========================================
+// 8. WISHLIST & FAVORITE PRODUCTS (❤️)
+// ==========================================
+router.get('/wishlist', authenticate, (req, res, next) => wishlistController.getWishlist(req, res, next));
+router.post('/wishlist/toggle', authenticate, (req, res, next) => wishlistController.toggleWishlist(req, res, next));
+router.post('/wishlist/sync', authenticate, (req, res, next) => wishlistController.syncWishlist(req, res, next));
+
+// ==========================================
+// 9. SHIPPING, CARRIERS & REALTIME TRACKING
+// ==========================================
+router.get('/shipping/tracking/:idOrDisplayId', (req, res, next) => shippingController.getShipmentTracking(req, res, next));
+router.post('/shipping/:orderId/carrier', authenticate, requireAdmin, (req, res, next) => shippingController.updateCarrier(req, res, next));
+router.post('/shipping/:orderId/simulate-step', authenticate, requireAdmin, (req, res, next) => shippingController.simulateNextStep(req, res, next));
 
 module.exports = router;

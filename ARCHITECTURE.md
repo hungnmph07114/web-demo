@@ -90,6 +90,17 @@ Tách biệt hoàn toàn 2 vòng đời:
 * Khi khách hàng đặt hàng thành công, hệ thống sử dụng Transaction của PostgreSQL (`BEGIN ... FOR UPDATE ... COMMIT`) để kiểm tra tồn kho từng biến thể và trừ trực tiếp `inventory_quantity`.
 * Nếu số lượng mua vượt quá số lượng còn lại trong kho, hệ thống trả về thông báo lỗi chi tiết kèm số lượng máy còn lại.
 
+### 5. Cổng Webhook VietQR 24/7 Tự Động Khớp Tiền Tức Thì
+* **Tự động bắt Webhook từ SePay / Casso / Open Banking:**
+  * Endpoint: `POST /api/webhooks/vietqr`
+  * Thuật toán Regex tự động bóc tách mã đơn `TP-xxxx` từ nội dung chuyển khoản.
+  * Tự động kiểm tra đối soát số tiền chuyển so với `order.total_amount`.
+  * Khớp thành công $\rightarrow$ Chuyển `payment_status = 'captured'`, lưu mã GD ngân hàng vào `transaction_ref`, tự động ghi nhật ký `order_logs` và `webhook_logs`.
+* **Trình giả lập Webhook (Simulator):**
+  * Endpoint: `POST /api/webhooks/vietqr/simulate`
+  * Cung cấp nút bấm 1 chạm trên giao diện khách hàng và Admin để thử nghiệm luồng tiền mà không cần dùng tiền thật.
+* **Cơ chế Polling Realtime:** Màn hình thanh toán và Tra cứu đơn hàng tự động thăm dò mỗi 2.5s để chúc mừng và hiển thị xác nhận đã nhận tiền ngay khi Webhook kích hoạt.
+
 ---
 
 ## 🔑 3. Tài Khoản Trải Nghiệm Có Sẵn
@@ -110,3 +121,71 @@ Hệ thống đã tự động tạo sẵn 2 tài khoản mẫu:
 * `TECHPULSE50K`: Giảm trực tiếp **50.000đ** cho đơn từ 500.000đ.
 * `VIP10`: Giảm **10%** (tối đa 2.000.000đ) cho đơn từ 15.000.000đ.
 * `FREESHIP`: Miễn phí giao hàng (trợ giá 30.000đ).
+
+---
+
+## ⭐ 5. Module Đánh Giá & Chấm Sao Khách Hàng (Reviews Module)
+
+* **Bảng dữ liệu `reviews`**: Lưu trữ `product_id`, `user_id`, `user_name`, `rating` (1-5★), `title`, `comment`, `verified_purchase`, `created_at`.
+* **Xác thực mua hàng tự động (`verified_purchase`)**: Hệ thống tự động kiểm tra xem khách hàng đã từng có đơn hàng hoàn tất (`captured` hoặc `delivered`) chứa biến thể của sản phẩm đó hay chưa để gắn huy hiệu xanh **"Đã mua tại TechPulse ✅"**.
+* **Thống kê điểm & phân bổ sao**:
+  * `averageRating`: Điểm trung bình làm tròn 1 chữ số thập phân (VD: 4.8 / 5.0).
+  * `distribution`: Đếm số lượng đánh giá theo từng bậc 5★, 4★, 3★, 2★, 1★ kèm thanh % trực quan.
+  * Lọc linh hoạt theo số sao hoặc chỉ xem đơn đã mua hàng thực tế.
+* **Tích hợp giao diện**:
+  * Hiển thị điểm sao trên từng card sản phẩm (`ProductCard.jsx`).
+  * Bảng điều khiển đánh giá và form nhận xét tương tác trực tiếp trong modal chi tiết sản phẩm (`ProductModal.jsx` & `ProductReviews.jsx`).
+
+---
+
+## 📊 6. Tiện Ích Vận Hành: Xuất Excel & In Hóa Đơn
+
+* **Xuất Excel / CSV chuẩn UTF-8**: Hàm `exportOrdersToCSV` bổ sung ký tự UTF-8 BOM (`\uFEFF`), hỗ trợ mở trực tiếp trong Microsoft Excel mà không bị lỗi font chữ tiếng Việt có dấu. Cho phép xuất toàn bộ đơn hoặc theo bộ lọc tìm kiếm.
+* **In hóa đơn đóng gói (`🖨️ In Hóa Đơn`)**: Mở cửa sổ in ấn chuyên nghiệp với định dạng chuẩn phiếu giao hàng thương mại điện tử, bao gồm thông tin người gửi, người nhận, bảng danh sách sản phẩm, biến thể, đơn giá, mã giảm giá và tổng thanh toán.
+
+---
+
+## 💖 7. Module Danh Sách Yêu Thích (Wishlist Module)
+
+* **Bảng dữ liệu `wishlists`**: Khóa duy nhất `UNIQUE(user_id, product_id)` lưu trữ các sản phẩm được người dùng yêu thích.
+* **Cơ chế Lưu trữ Lai (Hybrid Persistence)**:
+  * Khách vãng lai chưa đăng nhập: Lưu trữ danh sách ID yêu thích trong `localStorage` (`techpulse_wishlist`).
+  * Khi đăng nhập tài khoản: Tự động gọi endpoint `POST /api/wishlist/sync` để đồng bộ hợp nhất danh sách từ thiết bị lên tài khoản máy chủ.
+  * Thao tác 1 chạm `POST /api/wishlist/toggle`: Bật/tắt trạng thái yêu thích tức thời.
+* **Tích hợp giao diện**:
+  * Nút thả tim nổi trên từng thẻ sản phẩm (`ProductCard.jsx`) với hiệu ứng scale và tim đỏ rực.
+  * Nút lưu yêu thích trong modal chi tiết sản phẩm (`ProductModal.jsx`).
+  * Nút **Yêu thích** trên Navbar kèm huy hiệu đếm số lượng thời gian thực (`Navbar.jsx`).
+  * Drawer danh sách yêu thích trượt từ bên phải ([`WishlistDrawer.jsx`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/frontend/src/components/WishlistDrawer.jsx)) giúp khách hàng dễ dàng xem lại, theo dõi mức giá và mở nhanh cấu hình để đặt hàng.
+
+---
+
+## 🚚 8. Module Giao Vận & Lộ Trình Bưu Tá Thời Gian Thực (Shipping & Logistics)
+
+* **Bảng dữ liệu `shipment_tracking_events`**: Lưu vết từng mốc bưu cục (`hub_name`), trạng thái (`status`), ghi chú chi tiết (`description`) và mốc thời gian thực (`created_at`).
+* **Hỗ trợ 4 đơn vị vận chuyển lớn**:
+  * ⚡ **Giao Hàng Nhanh Express (GHN)**: Hotline 1900 636677.
+  * 🛵 **Giao Hàng Tiết Kiệm (GHTK)**: Hotline 1900 6092.
+  * 📮 **Viettel Post (VTP Logistics)**: Hotline 1900 8095.
+  * 🚀 **TechPulse Now Hỏa Tốc (2 Giờ)**: Dành cho nội thành Hà Nội & TP.HCM.
+* **Mã vận đơn & Thẻ bưu tá**:
+  * Tự động sinh mã vận đơn chuẩn hãng (VD: `GHN-HN839102`, `GHTK-66863626`).
+  * Thông tin bưu tá giao hàng (Họ tên, Số điện thoại hỗ trợ bấm gọi trực tiếp, Dự kiến ngày nhận).
+* **Công cụ giả lập tiến trình cho Quản trị viên (Admin Simulator)**:
+  * Nút bấm `⚡ Mô phỏng mốc bưu tá tiếp theo` trong [`AdminOrderDetailModal.jsx`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/frontend/src/components/AdminOrderDetailModal.jsx) cho phép quản trị viên giả lập kiện hàng qua các trạm (Xuất kho -> Trung chuyển SOC -> Bưu tá đi giao -> Khách ký nhận).
+  * Tự động đồng bộ trạng thái giao vận `fulfillment_status` tương ứng.
+* **Tra cứu công khai trực quan ([`OrderTrackingModal.jsx`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/frontend/src/components/OrderTrackingModal.jsx))**:
+  * Khách hàng nhập mã đơn (hoặc bấm từ màn hình "Đơn của tôi") để theo dõi timeline lộ trình bưu cục chi tiết với chấm xanh phát sáng ở mốc mới nhất.
+
+---
+
+## 🐳 9. Đóng Gói Container & Triển Khai Production (Docker & Cloud)
+
+* **Multi-stage Dockerfile ([`Dockerfile`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/Dockerfile))**:
+  * **Stage 1 (Frontend Builder)**: Sử dụng `node:20-alpine` build React SPA, tối ưu hóa bundle.
+  * **Stage 2 (Runner)**: Chạy với người dùng bảo mật `non-root`, phục vụ toàn bộ API Express và giao diện React từ `frontend/dist`.
+  * Tích hợp sẵn `HEALTHCHECK` tự động probe endpoint `/api/health`.
+* **Cấu hình Docker Compose ([`docker-compose.yml`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/docker-compose.yml))**:
+  * Chạy trọn gói ứng dụng `app` kèm tùy chọn cơ sở dữ liệu `db` PostgreSQL nội bộ có sẵn volume lưu trữ bền vững.
+* **Tài liệu hướng dẫn triển khai ([`DEPLOYMENT.md`](file:///c:/Users/84123/OneDrive/Desktop/hoctap/DEPLOYMENT.md))**:
+  * Hướng dẫn chi tiết từng bước deploy lên Render, Railway, VPS Ubuntu (PM2 & Nginx) và cấu hình Supabase Connection Pooler (cổng 6543).

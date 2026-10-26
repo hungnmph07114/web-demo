@@ -22,10 +22,13 @@ class ProductService {
         COALESCE(MIN(v.price), 0) as min_price,
         COALESCE(MAX(v.price), 0) as max_price,
         COALESCE(SUM(v.inventory_quantity), 0) as total_inventory,
-        COUNT(v.id) as variants_count
+        COUNT(DISTINCT v.id) as variants_count,
+        COALESCE(ROUND(AVG(r.rating), 1), 5.0) as average_rating,
+        COUNT(DISTINCT r.id) as reviews_count
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN product_variants v ON p.id = v.product_id AND v.is_active = true
+      LEFT JOIN reviews r ON p.id = r.product_id
       WHERE p.is_published = true
     `;
     const params = [];
@@ -56,10 +59,14 @@ class ProductService {
         p.*,
         c.name as category_name,
         c.slug as category_slug,
-        c.icon as category_icon
+        c.icon as category_icon,
+        COALESCE(ROUND(AVG(r.rating), 1), 5.0) as average_rating,
+        COUNT(DISTINCT r.id) as reviews_count
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN reviews r ON p.id = r.product_id
       WHERE ${isNum ? 'p.id = $1' : 'p.slug = $1'}
+      GROUP BY p.id, c.id
     `, [idOrSlug]);
 
     if (prodRes.rows.length === 0) {

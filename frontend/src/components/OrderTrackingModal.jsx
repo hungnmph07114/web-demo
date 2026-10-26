@@ -1,14 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchApi, formatMoney } from '../services/api';
-import { X, Search, CheckCircle, Clock, Truck, Package, QrCode, Copy, AlertCircle } from 'lucide-react';
+import { X, Search, CheckCircle, Clock, Truck, Package, QrCode, Copy, AlertCircle, Zap } from 'lucide-react';
 
-export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
+export default function OrderTrackingModal({ isOpen, onClose, onToast, initialOrderQuery = '' }) {
   if (!isOpen) return null;
 
-  const [orderQuery, setOrderQuery] = useState('');
+  const [orderQuery, setOrderQuery] = useState(initialOrderQuery || '');
   const [order, setOrder] = useState(null);
+  const [shipment, setShipment] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const fetchOrder = async (displayId) => {
+    try {
+      const cleanId = displayId.trim().replace(/^#/, '');
+      const res = await fetchApi(`/api/orders/${encodeURIComponent(cleanId)}`);
+      setOrder(res.data);
+
+      // Fetch live shipment tracking info
+      try {
+        const shipRes = await fetchApi(`/api/shipping/tracking/${encodeURIComponent(cleanId)}`);
+        if (shipRes.success && shipRes.data?.shipment) {
+          setShipment(shipRes.data.shipment);
+        }
+      } catch (e) {
+        // silent
+      }
+
+      return res.data;
+    } catch (err) {
+      setErrorMsg(err.message || 'Không tìm thấy thông tin đơn hàng với mã vừa nhập');
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (initialOrderQuery) {
+      setOrderQuery(initialOrderQuery);
+      fetchOrder(initialOrderQuery);
+    }
+  }, [initialOrderQuery]);
 
   const handleSearchOrder = async (e) => {
     e.preventDefault();
@@ -19,13 +51,53 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
     setOrder(null);
 
     try {
-      const cleanId = orderQuery.trim().replace(/^#/, '');
-      const res = await fetchApi(`/api/orders/${encodeURIComponent(cleanId)}`);
-      setOrder(res.data);
-    } catch (err) {
-      setErrorMsg(err.message || 'Không tìm thấy thông tin đơn hàng với mã vừa nhập');
+      await fetchOrder(orderQuery);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Realtime Polling for Webhook confirmation (every 3 seconds)
+  useEffect(() => {
+    if (!order || order.payment_status === 'captured') return;
+
+    const poll = setInterval(async () => {
+      try {
+        const updated = await fetchOrder(order.display_id);
+        if (updated && updated.payment_status === 'captured') {
+          onToast('⚡ Cổng VietQR 24/7 đã tự động xác nhận nhận tiền thành công!', 'success');
+          clearInterval(poll);
+        }
+      } catch (e) {
+        // silent
+      }
+    }, 3000);
+
+    return () => clearInterval(poll);
+  }, [order?.display_id, order?.payment_status]);
+
+  const handleSimulatePayment = async () => {
+    if (!order) return;
+    setIsSimulating(true);
+    try {
+      const res = await fetchApi('/api/webhooks/vietqr/simulate', {
+        method: 'POST',
+        body: JSON.stringify({
+          display_id: order.display_id,
+          amount: order.total_amount,
+          bank_name: 'MB Bank (Simulator 24/7)'
+        })
+      });
+      if (res.success) {
+        onToast('⚡ Webhook ngân hàng đã khớp tiền tự động!');
+        fetchOrder(order.display_id);
+      } else {
+        onToast(res.message, 'error');
+      }
+    } catch (err) {
+      onToast(err.message, 'error');
+    } finally {
+      setIsSimulating(false);
     }
   };
 
@@ -60,7 +132,7 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
             <span>Tra Cứu Tiến Độ Đơn Hàng & VietQR</span>
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Nhập mã đơn hàng hiển thị (ví dụ: <strong style={{ color: 'var(--accent-cyan)' }}>TP-9128</strong> hoặc ID đơn) để xem trạng thái giao vận và đối soát chuyển khoản.
+            Nhập mã đơn hàng hiển thị (ví dụ: <strong style={{ color: 'var(--accent-cyan)' }}>TP-9619</strong> hoặc ID đơn) để xem trạng thái giao vận và đối soát chuyển khoản.
           </p>
         </div>
 
@@ -69,7 +141,7 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
           <div style={{ flex: 1, position: 'relative' }}>
             <input
               type="text"
-              placeholder="Nhập mã đơn hàng (VD: TP-1025)..."
+              placeholder="Nhập mã đơn hàng (VD: TP-9619)..."
               value={orderQuery}
               onChange={(e) => setOrderQuery(e.target.value)}
               style={{
@@ -146,11 +218,13 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
                   <span className={`status-badge ${
                     order.fulfillment_status === 'delivered' ? 'ful-delivered' :
                     order.fulfillment_status === 'shipped' ? 'ful-shipped' :
-                    order.fulfillment_status === 'packing' ? 'ful-packing' : 'ful-processing'
+                    order.fulfillment_status === 'packing' ? 'ful-packing' :
+                    order.fulfillment_status === 'canceled' ? 'ful-canceled' : 'ful-processing'
                   }`}>
                     {order.fulfillment_status === 'delivered' ? '🎉 Đã nhận hàng' :
                      order.fulfillment_status === 'shipped' ? '🚚 Đang giao' :
-                     order.fulfillment_status === 'packing' ? '📦 Đang đóng gói' : 'Chờ xử lý'}
+                     order.fulfillment_status === 'packing' ? '📦 Đang đóng gói' :
+                     order.fulfillment_status === 'canceled' ? '✕ Đã hủy' : 'Chờ xử lý'}
                   </span>
                 </div>
               </div>
@@ -202,6 +276,177 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
               </div>
             </div>
 
+            {/* Live Carrier & Checkpoint Timeline Card */}
+            {shipment && (
+              <div
+                style={{
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}
+              >
+                {/* Header: Carrier Badge & Tracking Code */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 12px',
+                        borderRadius: '999px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: `1px solid ${shipment.carrierColor}`,
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.1rem' }}>{shipment.carrierIcon}</span>
+                      <span>{shipment.carrierName}</span>
+                    </span>
+
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Hotline: <strong style={{ color: '#fff' }}>{shipment.carrierHotline}</strong>
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Mã vận đơn:</span>
+                    <strong style={{ color: 'var(--accent-cyan)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                      {shipment.trackingCode}
+                    </strong>
+                    <button
+                      type="button"
+                      className="btn-copy-pill"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                      onClick={() => copyToClipboard(shipment.trackingCode, 'Mã vận đơn')}
+                    >
+                      <Copy size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Driver Info Box */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-glass)',
+                    borderRadius: 'var(--radius-md)',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald))',
+                        color: '#000',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      🛵
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff' }}>
+                        {shipment.driverName}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>SĐT Bưu tá:</span>
+                        <a
+                          href={`tel:${shipment.driverPhone}`}
+                          style={{ color: 'var(--accent-emerald)', fontWeight: 700, textDecoration: 'none' }}
+                        >
+                          {shipment.driverPhone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {shipment.estimatedDeliveryDate && (
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Dự kiến giao hàng:</span>
+                      <strong style={{ color: 'var(--accent-cyan)', fontSize: '0.88rem' }}>
+                        {new Date(shipment.estimatedDeliveryDate).toLocaleDateString('vi-VN', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkpoint Timeline */}
+                {shipment.timeline && shipment.timeline.length > 0 && (
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
+                      📍 Lộ Trình Di Chuyển Của Kiện Hàng ({shipment.timeline.length} mốc):
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', paddingLeft: '20px' }}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: '6px',
+                          top: '6px',
+                          bottom: '6px',
+                          width: '2px',
+                          background: 'rgba(255, 255, 255, 0.1)'
+                        }}
+                      />
+
+                      {shipment.timeline.map((ev, idx) => {
+                        const isLatest = idx === shipment.timeline.length - 1;
+                        return (
+                          <div key={ev.id || idx} style={{ position: 'relative' }}>
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: '-18px',
+                                top: '3px',
+                                width: '10px',
+                                height: '10px',
+                                borderRadius: '50%',
+                                background: isLatest ? 'var(--accent-emerald)' : 'var(--text-dim)',
+                                boxShadow: isLatest ? '0 0 10px var(--accent-emerald)' : 'none'
+                              }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+                              <strong style={{ fontSize: '0.85rem', color: isLatest ? 'var(--accent-emerald)' : '#fff' }}>
+                                {ev.hub_name}
+                              </strong>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {new Date(ev.created_at).toLocaleString('vi-VN')}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.82rem', color: isLatest ? '#E2E8F0' : 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                              {ev.description}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* If VietQR awaiting payment: Display VietQR Card */}
             {order.payment_status !== 'captured' && order.vietqr_image && (
               <div style={{
@@ -227,9 +472,21 @@ export default function OrderTrackingModal({ isOpen, onClose, onToast }) {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                  <h4 style={{ color: 'var(--accent-amber)', fontSize: '0.95rem', marginBottom: '4px' }}>
-                    ⚠️ Đơn hàng chưa hoàn tất thanh toán
-                  </h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ color: 'var(--accent-amber)', fontSize: '0.95rem' }}>
+                      ⚠️ Đơn hàng đang chờ thanh toán
+                    </h4>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan)' }}
+                      onClick={handleSimulatePayment}
+                      disabled={isSimulating}
+                    >
+                      <Zap size={13} />
+                      <span>{isSimulating ? 'Đang gửi...' : '⚡ Giả lập Quét QR (Test Webhook)'}</span>
+                    </button>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-glass)' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Số tiền cần thanh toán:</span>
                     <strong style={{ color: '#fff', fontSize: '1.05rem' }}>{formatMoney(order.total_amount)}</strong>

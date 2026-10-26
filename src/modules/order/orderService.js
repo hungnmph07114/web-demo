@@ -248,6 +248,33 @@ class OrderService {
     return res.rows;
   }
 
+  async getMyOrders(userId, email) {
+    const res = await pool.query(`
+      SELECT 
+        o.*,
+        COUNT(oi.id) as total_items,
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', oi.id,
+            'product_title', oi.product_title,
+            'variant_title', oi.variant_title,
+            'sku', oi.sku,
+            'unit_price', oi.unit_price,
+            'quantity', oi.quantity,
+            'total_price', oi.total_price,
+            'thumbnail', oi.thumbnail
+          )
+        ) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      WHERE (o.user_id IS NOT NULL AND o.user_id = $1) 
+         OR (o.customer_email IS NOT NULL AND LOWER(o.customer_email) = LOWER($2))
+      GROUP BY o.id
+      ORDER BY o.created_at DESC;
+    `, [userId || 0, email || '']);
+    return res.rows;
+  }
+
   async getOrderDetails(idOrDisplayId) {
     const isNum = !isNaN(idOrDisplayId);
     const orderRes = await pool.query(`

@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { formatMoney } from '../services/api';
-import { X, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Star, Heart } from 'lucide-react';
+import ProductReviews from './ProductReviews';
 
-export default function ProductModal({ product, onClose, onAddToCart, onToast }) {
+export default function ProductModal({
+  product,
+  onClose,
+  onAddToCart,
+  onToast,
+  token,
+  currentUser,
+  isWishlisted,
+  onToggleWishlist
+}) {
   if (!product) return null;
 
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -102,6 +112,25 @@ export default function ProductModal({ product, onClose, onAddToCart, onToast })
             </span>
             <h2 className="modal-title">{product.title}</h2>
             <p className="modal-subtitle">{product.subtitle || product.title}</p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0 16px 0' }}>
+              <div style={{ display: 'flex', gap: '3px', color: '#FBBF24' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={16}
+                    fill={star <= Math.round(Number(product.average_rating || 5)) ? '#FBBF24' : 'transparent'}
+                    color="#FBBF24"
+                  />
+                ))}
+              </div>
+              <span style={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem' }}>
+                {product.average_rating || '5.0'}
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                • ({product.reviews_count || 0} lượt đánh giá)
+              </span>
+            </div>
 
             {/* Price Box */}
             <div className="modal-price-box">
@@ -206,13 +235,43 @@ export default function ProductModal({ product, onClose, onAddToCart, onToast })
                 className="btn btn-primary btn-add-cart"
                 onClick={handleAdd}
                 disabled={!activeVariant || activeVariant.inventory_quantity <= 0}
+                style={{ flex: 1 }}
               >
                 <ShoppingCart size={18} />
                 <span>Thêm vào giỏ hàng</span>
               </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => onToggleWishlist && onToggleWishlist(product.id)}
+                title={isWishlisted ? 'Đã lưu vào yêu thích (Bấm để bỏ)' : 'Lưu vào danh sách yêu thích'}
+                style={{
+                  padding: '0 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderColor: isWishlisted ? '#EF4444' : undefined,
+                  background: isWishlisted ? 'rgba(239, 68, 68, 0.15)' : undefined
+                }}
+              >
+                <Heart
+                  size={18}
+                  fill={isWishlisted ? '#EF4444' : 'transparent'}
+                  color={isWishlisted ? '#EF4444' : '#fff'}
+                />
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Customer Reviews & Star Ratings */}
+        <ProductReviews
+          productId={product.id}
+          token={token}
+          currentUser={currentUser}
+          onToast={onToast}
+        />
       </div>
     </div>
   );
