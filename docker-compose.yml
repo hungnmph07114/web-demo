@@ -16,7 +16,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/techpulse_db}
-      - JWT_SECRET=${JWT_SECRET:-techpulse_secret_key_production_2026}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy

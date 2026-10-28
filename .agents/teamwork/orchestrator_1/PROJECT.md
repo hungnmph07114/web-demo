@@ -22,10 +22,10 @@
 | 7 | Comprehensive AUDIT_REPORT.md | Complete synthesis of findings into root AUDIT_REPORT.md with severity ratings, root causes, exact file locations, and remediations | M1 | Synthesized |
 
 ## Milestones
-| # | Name | Scope | Dependencies | Status |
-|---|------|-------|-------------|--------|
-| M1 | Full Audit Report Generation | Implement AUDIT_REPORT.md at project root, execute verification scripts, and validate evidence | Survey Complete | IN_PROGRESS |
-| M2 | Review, Verification & Forensic Audit | 2 Reviewers, 2 Challengers, and 1 Forensic Auditor gate check | M1 | PLANNED |
+| # | Name | Scope | Dependencies | Status | Key Outputs |
+|---|------|-------|-------------|--------|-------------|
+| M1 | Full Audit Report Generation | Implement AUDIT_REPORT.md at project root, execute verification scripts, and validate evidence | Survey Complete | DONE | `AUDIT_REPORT.md` (1,025 lines, 88.4 KB, 20 findings) |
+| M2 | Review, Verification & Forensic Audit | 2 Reviewers, 2 Challengers, and 1 Forensic Auditor gate check | M1 | DONE | All 4 reviewers/challengers APPROVED, Forensic Auditor CLEAN |
 
 ## Code Layout & Write Boundaries
 - Worker exclusively owns: `c:\Users\84123\OneDrive\Desktop\hoctap\AUDIT_REPORT.md`

@@ -82,7 +82,7 @@ export default function AdminDocsTab({ onToast }) {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => copyToClipboard('rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE', 'apikey', 'Render API Key')}
+              onClick={() => copyToClipboard('********************************', 'apikey', 'Render API Key (Đã ẩn vì bảo mật)')}
               style={{ fontSize: '0.75rem', padding: '4px 8px' }}
               title="Sao chép Render API Key"
             >
@@ -114,7 +114,7 @@ export default function AdminDocsTab({ onToast }) {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => copyToClipboard('postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres', 'dburl', 'DATABASE_URL')}
+              onClick={() => copyToClipboard('postgresql://postgres.oecgyiaetefmxkrndcvk:[PASSWORD_HIDDEN]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres', 'dburl', 'DATABASE_URL (Đã ẩn mật khẩu)')}
               style={{ fontSize: '0.75rem', padding: '4px 8px' }}
               title="Sao chép DATABASE_URL"
             >
@@ -324,12 +324,12 @@ export default function AdminDocsTab({ onToast }) {
 
             <div style={{ background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-md)', padding: '14px', border: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <code style={{ fontSize: '0.82rem', fontFamily: 'var(--font-mono)', color: 'var(--text-main)', wordBreak: 'break-all' }}>
-                curl -X POST https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys -H "Authorization: Bearer rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE" -H "Accept: application/json"
+                curl -X POST https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys -H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json"
               </code>
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => copyToClipboard('curl -X POST https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys -H "Authorization: Bearer rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE" -H "Accept: application/json"', 'curl_deploy', 'Lệnh cURL Deploy')}
+                onClick={() => copyToClipboard('curl -X POST https://api.render.com/v1/services/srv-dbe83css728c73bbh7g0/deploys -H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json"', 'curl_deploy', 'Lệnh cURL Deploy (Dùng biến RENDER_API_KEY)')}
                 style={{ fontSize: '0.75rem', padding: '6px 12px', flexShrink: 0, marginLeft: '12px' }}
               >
                 {copiedKey === 'curl_deploy' ? <Check size={14} style={{ color: 'var(--accent-emerald)' }} /> : <Copy size={14} />}

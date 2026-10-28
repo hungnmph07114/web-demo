@@ -5,8 +5,12 @@
 
 function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   next();
 }
 
@@ -28,8 +32,7 @@ function createRateLimiter({ windowMs = 60 * 1000, maxRequests = 30, message = '
   }
 
   return function rateLimiterMiddleware(req, res, next) {
-    const forwarded = req.headers['x-forwarded-for'];
-    const clientIp = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.ip) || 'unknown';
+    const clientIp = req.ip || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : 'unknown');
     const now = Date.now();
 
     const record = ipBuckets.get(clientIp);

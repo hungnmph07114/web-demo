@@ -1,4 +1,10 @@
-const XLSX = require('xlsx');
+let XLSX;
+try {
+  XLSX = require('xlsx');
+} catch (_) {
+  // Optional dependency
+}
+const fs = require('fs');
 const path = require('path');
 const { pool } = require('../config/db');
 
@@ -58,8 +64,8 @@ async function exportHandoverExcel() {
     {
       'Nhóm dịch vụ': 'Máy chủ Web (Render.com)',
       'Hạng mục': 'Render API Key',
-      'Giá trị / Thông tin chi tiết': 'rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE',
-      'Ghi chú / Trạng thái': 'Dùng để tự động kích hoạt deploy từ xa'
+      'Giá trị / Thông tin chi tiết': process.env.RENDER_API_KEY || 'rnd_****************************',
+      'Ghi chú / Trạng thái': 'Dùng để tự động kích hoạt deploy từ xa (Đã che vì bảo mật)'
     },
     {
       'Nhóm dịch vụ': 'Máy chủ Web (Render.com)',
@@ -82,13 +88,13 @@ async function exportHandoverExcel() {
     {
       'Nhóm dịch vụ': 'Cơ sở dữ liệu (Supabase)',
       'Hạng mục': 'Mật khẩu Database',
-      'Giá trị / Thông tin chi tiết': 'manhhung0423',
+      'Giá trị / Thông tin chi tiết': '[SECURE_CONFIGURED_IN_ENV]',
       'Ghi chú / Trạng thái': 'Bảo mật kết nối PostgreSQL'
     },
     {
       'Nhóm dịch vụ': 'Cơ sở dữ liệu (Supabase)',
       'Hạng mục': 'DATABASE_URL (Connection String)',
-      'Giá trị / Thông tin chi tiết': 'postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres',
+      'Giá trị / Thông tin chi tiết': 'postgresql://postgres.oecgyiaetefmxkrndcvk:[PASSWORD_HIDDEN]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres',
       'Ghi chú / Trạng thái': 'Giao thức Pooler cổng 6543 hỗ trợ SSL'
     },
     {
@@ -173,7 +179,7 @@ async function exportHandoverExcel() {
     },
     {
       'Tên biến (Key)': 'DATABASE_URL',
-      'Giá trị mẫu': 'postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres',
+      'Giá trị mẫu': 'postgresql://postgres.oecgyiaetefmxkrndcvk:[PASSWORD_HIDDEN]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres',
       'Bắt buộc': 'Có',
       'Ý nghĩa & Mục đích': 'Chuỗi kết nối cơ sở dữ liệu Supabase PostgreSQL Pooler cổng 6543'
     },
@@ -578,6 +584,24 @@ async function exportHandoverExcel() {
       return { wch: Math.min(Math.max(maxLen + 4, 12), 65) };
     });
   };
+
+  if (!XLSX) {
+    const jsonOutput = {
+      sheet1Data,
+      sheet2Data,
+      sheet3Data,
+      sheet4Data,
+      sheet5Data,
+      sheet6Data,
+      sheet7Data,
+      sheet8Data
+    };
+    const jsonFilePath = path.join(__dirname, '../../HO_SO_BAN_GIAO_HE_THONG_ATELIER.json');
+    fs.writeFileSync(jsonFilePath, JSON.stringify(jsonOutput, null, 2), 'utf8');
+    console.log(`\n🎉 ĐÃ XUẤT THÀNH CÔNG HỒ SƠ BÀN GIAO DẠNG JSON TẠI:`);
+    console.log(`👉 ${jsonFilePath}\n`);
+    return;
+  }
 
   const ws1 = XLSX.utils.json_to_sheet(sheet1Data);
   ws1['!cols'] = fitWidth(sheet1Data);

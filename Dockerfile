@@ -35,7 +35,10 @@ COPY src/ ./src/
 COPY server.js ./
 
 # Copy compiled frontend build from Stage 1 into frontend/dist
-COPY --from=frontend-builder --chown=techpulse:techpulse /app/frontend/dist ./frontend/dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+# Ensure required directories exist and belong to non-root user
+RUN mkdir -p public/uploads .pglite-data && chown -R techpulse:techpulse /app
 
 # Switch to non-root user
 USER techpulse

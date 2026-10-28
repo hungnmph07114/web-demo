@@ -227,16 +227,21 @@ async function seedMultiCategoryCatalog(client, customerUserId) {
 async function seedDatabase() {
   const client = await pool.connect();
   try {
-    // 1. Luôn đảm bảo tài khoản Admin tồn tại
+    // 1. Quản lý tài khoản Admin (SEC-09: Không tạo mật khẩu admin123 mặc định trên Production)
     const adminCheck = await client.query(`SELECT id FROM users WHERE role = 'admin' LIMIT 1`);
     if (adminCheck.rows.length === 0) {
-      const adminPassword = await bcrypt.hash('admin123', 10);
-      await client.query(`
-        INSERT INTO users (email, password_hash, full_name, phone, role)
-        VALUES ('admin@techpulse.vn', $1, 'Quản Trị Viên (Admin)', '0987654321', 'admin')
-        ON CONFLICT (email) DO NOTHING;
-      `, [adminPassword]);
-      console.log('✅ Đã tạo tài khoản quản trị mặc định: admin@techpulse.vn (Pass: admin123)');
+      if (process.env.NODE_ENV === 'production' && !process.env.INITIAL_ADMIN_PASSWORD && process.env.SEED_DEFAULT_ADMIN !== 'true') {
+        console.warn('⚠️ [Production Security]: Bỏ qua tạo tài khoản admin mặc định. Hãy thiết lập INITIAL_ADMIN_PASSWORD hoặc tạo qua giao diện quản trị.');
+      } else {
+        const rawPass = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
+        const adminPassword = await bcrypt.hash(rawPass, 10);
+        await client.query(`
+          INSERT INTO users (email, password_hash, full_name, phone, role)
+          VALUES ('admin@techpulse.vn', $1, 'Quản Trị Viên (Admin)', '0987654321', 'admin')
+          ON CONFLICT (email) DO NOTHING;
+        `, [adminPassword]);
+        console.log('✅ Đã tạo tài khoản quản trị: admin@techpulse.vn');
+      }
     }
 
     // 2. Luôn đảm bảo cấu hình thương hiệu cửa hàng (Store Settings)

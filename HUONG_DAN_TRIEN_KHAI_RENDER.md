@@ -8,12 +8,12 @@ Tài liệu này được biên soạn dành riêng cho bạn để lưu trữ t
 > | :--- | :--- | :--- |
 > | **Render.com** (Server Web) | Email tài khoản | `itisloves2@gmail.com` (Workspace: *My Workspace*) |
 > | | Trang quản trị | [dashboard.render.com](https://dashboard.render.com) |
-> | | API Key | `rnd_VRDeFOy2odVHNB3CFVNkRYrED2NE` |
+> | | API Key | `rnd_****************************` (Ẩn vì bảo mật) |
 > | | **Trang Web Trực Tuyến (Live)** | **[https://shopchychy.foo.ng](https://shopchychy.foo.ng)** (Tên miền riêng)<br>*(Hoặc: [https://web-demo-app.onrender.com](https://web-demo-app.onrender.com))* |
 > | | Kho lưu trữ GitHub | [https://github.com/hungnmph07114/web-demo](https://github.com/hungnmph07114/web-demo) |
 > | **Supabase** (PostgreSQL) | Trang quản trị | [supabase.com/dashboard/project/oecgyiaetefmxkrndcvk](https://supabase.com/dashboard/project/oecgyiaetefmxkrndcvk) |
-> | | Mật khẩu Database | `manhhung0423` |
-> | | **Chuỗi kết nối (DATABASE_URL)** | `postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres` |
+> | | Mật khẩu Database | `[PASSWORD_CONFIGURED_IN_DASHBOARD]` |
+> | | **Chuỗi kết nối (DATABASE_URL)** | `postgresql://postgres.oecgyiaetefmxkrndcvk:[PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres` |
 > | | **API Keys (Supabase SDK)** | Trang lấy key: [API Keys Settings](https://supabase.com/dashboard/project/oecgyiaetefmxkrndcvk/settings/api-keys)<br>- `Publishable key`: Dùng cho Frontend/Client<br>- `Secret key`: Quyền Admin, chỉ dùng cho Backend trên Render |
 > | **Thư mục lưu trữ tài liệu** | Vị trí trên máy | `C:\Users\84123\OneDrive\Desktop\hoctap\HUONG_DAN_TRIEN_KHAI_RENDER.md` (Đã đồng bộ OneDrive) |
 
@@ -52,9 +52,9 @@ Render cung cấp các dịch vụ miễn phí rất mạnh mẽ cho lập trìn
 > * **Khu vực (Region):** `South Asia (Mumbai - ap-south-1)`
 > * **Chuỗi kết nối hoàn chỉnh (dùng cho biến `DATABASE_URL` trên Render hoặc file `.env`):**
 >   ```text
->   postgresql://postgres.oecgyiaetefmxkrndcvk:manhhung0423@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+>   postgresql://postgres.oecgyiaetefmxkrndcvk:[PASSWORD_HIDDEN]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
 >   ```
->   *(Hoặc Direct connection: `postgresql://postgres:manhhung0423@db.oecgyiaetefmxkrndcvk.supabase.co:5432/postgres`)*
+>   *(Hoặc Direct connection: `postgresql://postgres:[PASSWORD_HIDDEN]@db.oecgyiaetefmxkrndcvk.supabase.co:5432/postgres`)*
 
 ---
 

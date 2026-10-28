@@ -7,7 +7,7 @@ class WebhookService {
    */
   extractOrderCode(text) {
     if (!text) return null;
-    const match = String(text).toUpperCase().match(/TP-?\s*([0-9]{4,6})/);
+    const match = String(text).toUpperCase().match(/TP-?\s*([0-9A-Z]{4,12})/);
     if (match) {
       return `TP-${match[1]}`;
     }

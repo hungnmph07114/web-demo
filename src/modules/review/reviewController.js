@@ -26,7 +26,7 @@ class ReviewController {
       // Hỗ trợ cả trường hợp khách đã đăng nhập lẫn khách vãng lai
       const userId = req.user ? req.user.id : null;
       const userEmail = req.user ? req.user.email : (req.body.userEmail || null);
-      const authorName = userName || (req.user ? req.user.fullName : 'Khách hàng TechPulse');
+      const authorName = userName || (req.user ? (req.user.fullName || req.user.full_name) : 'Khách hàng TechPulse');
 
       const review = await reviewService.createReview({
         productId,

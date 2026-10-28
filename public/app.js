@@ -1,3 +1,12 @@
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 /**
  * TechPulse Modular E-Commerce — Frontend Orchestrator
  * Inspired by MedusaJS Architecture
@@ -1092,8 +1101,8 @@ async function loadAdminOrders() {
         <tr>
           <td><strong style="color: var(--accent-cyan);">#${o.display_id}</strong></td>
           <td>
-            <strong>${o.customer_name}</strong>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">${o.customer_phone}</p>
+            <strong>${escapeHtml(o.customer_name)}</strong>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(o.customer_phone)}</p>
           </td>
           <td style="font-size: 0.8rem;">${itemsSummary || '---'}</td>
           <td><strong style="color: #fff;">${formatMoney(o.total_amount)}</strong></td>

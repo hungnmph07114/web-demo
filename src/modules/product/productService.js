@@ -133,7 +133,7 @@ class ProductService {
     return true;
   }
 
-  async listProducts({ categorySlug, search, priceRange, inStockOnly, sortBy, includeUnpublished } = {}) {
+  async listProducts({ categorySlug, search, priceRange, inStockOnly, sortBy, includeUnpublished, page, limit } = {}) {
     const showAll = includeUnpublished === 'true' || includeUnpublished === true;
     let query = `
       SELECT 
@@ -210,6 +210,14 @@ class ProductService {
       query += ' ORDER BY COALESCE(ROUND(AVG(r.rating), 1), 5.0) DESC, COUNT(DISTINCT r.id) DESC, p.id DESC';
     } else {
       query += ' ORDER BY p.id DESC';
+    }
+
+    if (limit) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      const offset = (pageNum - 1) * pageSize;
+      params.push(pageSize, offset);
+      query += ` LIMIT ${params.length - 1} OFFSET ${params.length}`;
     }
 
     const res = await pool.query(query, params);

@@ -21,8 +21,8 @@ class OrderController {
 
   async list(req, res, next) {
     try {
-      const { payment_status, fulfillment_status, search } = req.query;
-      const data = await orderService.listOrders({ payment_status, fulfillment_status, search });
+      const { payment_status, fulfillment_status, search, page, limit } = req.query;
+      const data = await orderService.listOrders({ payment_status, fulfillment_status, search, page, limit });
       res.json({
         success: true,
         count: data.length,

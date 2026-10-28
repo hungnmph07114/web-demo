@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build"
+    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
+    "test": "node --test test/**/*.test.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.11",
@@ -16,7 +17,6 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.2.1",
-    "pg": "^8.11.5",
-    "xlsx": "^0.18.5"
+    "pg": "^8.11.5"
   }
 }

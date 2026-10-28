@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'techpulse_modular_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL: JWT_SECRET must be configured via environment variables in production!');
+  }
+  return 'techpulse_modular_jwt_secret_key_2026';
+})();
 
 function authenticate(req, res, next) {
   const authHeader = req.headers['authorization'];

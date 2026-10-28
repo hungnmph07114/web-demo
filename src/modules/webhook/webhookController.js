@@ -15,6 +15,15 @@ class WebhookController {
         (process.env.VIETQR_SECRET_TOKEN && process.env.VIETQR_SECRET_TOKEN.trim()) ||
         null;
 
+      // Bắt buộc cấu hình secret khi chạy Production (Fail-Safe Default)
+      if (!configuredSecret && process.env.NODE_ENV === 'production') {
+        console.error('CRITICAL: WEBHOOK_SECRET hoặc VIETQR_SECRET_TOKEN chưa được cấu hình trên máy chủ Production!');
+        return res.status(500).json({
+          success: false,
+          message: 'Máy chủ chưa cấu hình khóa bí mật Webhook'
+        });
+      }
+
       // Nếu hệ thống có cấu hình WEBHOOK_SECRET hoặc VIETQR_SECRET_TOKEN thì bắt buộc xác thực
       if (configuredSecret && apiKey !== configuredSecret) {
         return res.status(401).json({
@@ -35,6 +44,12 @@ class WebhookController {
    * POST /api/webhooks/vietqr/simulate
    */
   async simulateTransfer(req, res, next) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tính năng giả lập thanh toán bị vô hiệu hóa trên môi trường Production'
+      });
+    }
     try {
       const { display_id, amount, bank_name } = req.body;
       if (!display_id) {

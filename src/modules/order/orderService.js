@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { pool } = require('../../config/db');
 const notificationService = require('../notification/notificationService');
 
@@ -130,7 +131,8 @@ class OrderService {
       const totalAmount = Math.max(0, subtotal - discountTotal + shippingFee);
 
       // 3. Tạo mã hiển thị Display ID (VD: TP-1025)
-      const displayId = `TP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const displayId = `TP-${Date.now().toString().slice(-4)}${randomHex}`;
       const trackingCode = `GHN-${displayId.replace('TP-', '')}${Math.floor(1000 + Math.random() * 9000)}`;
 
       // 4. Tạo mã VietQR động NAPAS 247 theo cấu hình ngân hàng của cửa hàng
@@ -303,6 +305,14 @@ class OrderService {
       ORDER BY o.created_at DESC
     `;
 
+    if (limit) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      const offset = (pageNum - 1) * pageSize;
+      params.push(pageSize, offset);
+      query += ` LIMIT ${params.length - 1} OFFSET ${params.length}`;
+    }
+
     const res = await pool.query(query, params);
     return res.rows;
   }
@@ -378,6 +388,23 @@ class OrderService {
 
     order.items = itemsRes.rows;
     order.logs = logsRes.rows;
+
+    // Bảo vệ PII: Nếu không phải Admin và không phải chính chủ đơn hàng
+    const isOwner = requestingUser && (
+      requestingUser.role === 'admin' ||
+      (order.user_id && order.user_id === requestingUser.id) ||
+      (order.customer_email && requestingUser.email && order.customer_email.toLowerCase() === (requestingUser.email || '').toLowerCase())
+    );
+
+    if (!isOwner) {
+      if (order.customer_phone) {
+        order.customer_phone = order.customer_phone.replace(/(\d{3})\d{4}(\d{3})/, '$1****$2');
+      }
+      if (order.customer_email) {
+        order.customer_email = order.customer_email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+      }
+      order.shipping_address = 'Địa chỉ giao hàng bảo mật (Chỉ hiển thị cho người nhận)';
+    }
 
     return order;
   }

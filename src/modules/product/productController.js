@@ -31,7 +31,7 @@ class ProductController {
       if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
         return res.status(400).json({
           success: false,
-          message: 'Dữ liệu hình ảnh không hợp lệ (chỉ hỗ trợ PNG, JPG, WEBP, SVG, GIF)'
+          message: 'Dữ liệu hình ảnh không hợp lệ (chỉ hỗ trợ PNG, JPG, WEBP, GIF)'
         });
       }
 
@@ -48,7 +48,6 @@ class ProductController {
       let ext = 'jpg';
       if (mimeSub.includes('png')) ext = 'png';
       else if (mimeSub.includes('webp')) ext = 'webp';
-      else if (mimeSub.includes('svg')) ext = 'svg';
       else if (mimeSub.includes('gif')) ext = 'gif';
 
       const safeBaseName = String(fileName || 'image')
@@ -61,10 +60,8 @@ class ProductController {
       const buffer = Buffer.from(base64Data, 'base64');
 
       const publicUploadsDir = path.join(__dirname, '..', '..', '..', 'public', 'uploads');
-      if (!fs.existsSync(publicUploadsDir)) {
-        fs.mkdirSync(publicUploadsDir, { recursive: true });
-      }
-      fs.writeFileSync(path.join(publicUploadsDir, finalFileName), buffer);
+      await fs.promises.mkdir(publicUploadsDir, { recursive: true });
+      await fs.promises.writeFile(path.join(publicUploadsDir, finalFileName), buffer);
 
       const url = `/uploads/${finalFileName}`;
       res.status(201).json({
@@ -113,14 +110,16 @@ class ProductController {
 
   async getProducts(req, res, next) {
     try {
-      const { category, search, priceRange, inStockOnly, sortBy, includeUnpublished } = req.query;
+      const { category, search, priceRange, inStockOnly, sortBy, includeUnpublished, page, limit } = req.query;
       const data = await productService.listProducts({
         categorySlug: category,
         search,
         priceRange,
         inStockOnly,
         sortBy,
-        includeUnpublished
+        includeUnpublished,
+        page,
+        limit
       });
       res.json({ success: true, count: data.length, data });
     } catch (err) {

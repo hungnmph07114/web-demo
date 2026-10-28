@@ -431,6 +431,22 @@ async function initDatabase() {
       ADD COLUMN IF NOT EXISTS store_address TEXT DEFAULT '88 Đồng Khởi, Quận 1, TP. Hồ Chí Minh';
     `);
 
+        // Chỉ mục tối ưu hóa hiệu năng & truy vấn khóa ngoại (PERF-01)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+      CREATE INDEX IF NOT EXISTS idx_product_variants_product_id ON product_variants(product_id);
+      CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+      CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+      CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items(variant_id);
+      CREATE INDEX IF NOT EXISTS idx_order_logs_order_id ON order_logs(order_id);
+      CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
+      CREATE INDEX IF NOT EXISTS idx_shipment_events_order_id ON shipment_tracking_events(order_id);
+      CREATE INDEX IF NOT EXISTS idx_email_logs_order_id ON email_logs(order_id);
+      CREATE INDEX IF NOT EXISTS idx_orders_stale_cron ON orders(payment_status, fulfillment_status, created_at);
+      CREATE INDEX IF NOT EXISTS idx_orders_display_id ON orders(display_id);
+      CREATE INDEX IF NOT EXISTS idx_product_variants_active_stock ON product_variants(is_active, inventory_quantity);
+    `);
+
     console.log('✨ Khởi tạo hệ thống cơ sở dữ liệu Modular E-Commerce thành công!');
   } catch (error) {
     console.error('❌ Lỗi khi khởi tạo Database:', error);
